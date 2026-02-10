@@ -7,9 +7,11 @@ import { EditorToolbar } from '@/components/editor/EditorToolbar';
 import { CoverPage } from '@/components/editor/CoverPage';
 import { SectionPage } from '@/components/editor/SectionPage';
 import { LindeirosSection } from '@/components/editor/LindeirosSection';
+import { gerarPDF } from '@/lib/pdfGenerator';
 import type { SecaoId, Laudo } from '@/types/laudo';
-import { ArrowLeft, ZoomIn, ZoomOut } from 'lucide-react';
+import { ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from '@/hooks/use-toast';
 
 const LaudoEditor = () => {
   const { id } = useParams<{ id: string }>();
@@ -44,6 +46,14 @@ const LaudoEditor = () => {
         titulo={laudo.titulo}
         onTituloChange={(titulo) => handleUpdate({ titulo })}
         onVoltar={() => navigate('/')}
+        onExportPDF={async () => {
+          try {
+            gerarPDF(laudo);
+            toast({ title: 'PDF gerado com sucesso!', description: 'O download começou automaticamente.' });
+          } catch (err) {
+            toast({ title: 'Erro ao gerar PDF', description: String(err), variant: 'destructive' });
+          }
+        }}
       />
 
       <div className="flex flex-1 overflow-hidden">
