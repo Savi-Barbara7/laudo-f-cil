@@ -456,9 +456,15 @@ export function gerarPDF(laudo: Laudo) {
             const py = ly + row * cellH;
 
             const foto = amb.fotos[fi];
-            try {
-              doc.addImage(foto.dataUrl, 'JPEG', px, py, photoW, photoH);
-            } catch {
+            if (foto.dataUrl && foto.dataUrl.length > 10) {
+              try {
+                doc.addImage(foto.dataUrl, 'JPEG', px, py, photoW, photoH);
+              } catch {
+                doc.setDrawColor(200, 200, 200);
+                doc.setFillColor(240, 240, 240);
+                doc.rect(px, py, photoW, photoH, 'FD');
+              }
+            } else {
               doc.setDrawColor(200, 200, 200);
               doc.setFillColor(240, 240, 240);
               doc.rect(px, py, photoW, photoH, 'FD');

@@ -61,27 +61,50 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
     onUpdate(updated);
   };
 
-  const handleFotoUpload = (lindIndex: number, ambIndex: number, files: FileList) => {
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const MAX = 800;
+        let w = img.width, h = img.height;
+        if (w > MAX || h > MAX) {
+          const ratio = Math.min(MAX / w, MAX / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+        const compressed = canvas.toDataURL('image/jpeg', 0.6);
+        URL.revokeObjectURL(url);
+        resolve(compressed);
+      };
+      img.src = url;
+    });
+  };
+
+  const handleFotoUpload = async (lindIndex: number, ambIndex: number, files: FileList) => {
     const updated = [...lindeiros];
     const ambs = [...updated[lindIndex].ambientes];
     const fotos = [...ambs[ambIndex].fotos];
-    
-    Array.from(files).forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const newFoto: Foto = {
-          id: crypto.randomUUID(),
-          dataUrl: e.target?.result as string,
-          legenda: `Foto ${fotos.length + 1}`,
-          ordem: fotos.length,
-        };
-        fotos.push(newFoto);
-        ambs[ambIndex] = { ...ambs[ambIndex], fotos: [...fotos] };
-        updated[lindIndex] = { ...updated[lindIndex], ambientes: [...ambs] };
-        onUpdate([...updated]);
+    const startCount = fotos.length;
+
+    for (let i = 0; i < files.length; i++) {
+      const dataUrl = await compressImage(files[i]);
+      const newFoto: Foto = {
+        id: crypto.randomUUID(),
+        dataUrl,
+        legenda: `Foto ${startCount + i + 1}`,
+        ordem: startCount + i,
       };
-      reader.readAsDataURL(file);
-    });
+      fotos.push(newFoto);
+    }
+
+    ambs[ambIndex] = { ...ambs[ambIndex], fotos: [...fotos] };
+    updated[lindIndex] = { ...updated[lindIndex], ambientes: [...ambs] };
+    onUpdate([...updated]);
   };
 
   const removeFoto = (lindIndex: number, ambIndex: number, fotoIndex: number) => {
