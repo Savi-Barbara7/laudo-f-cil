@@ -17,7 +17,7 @@ function loadLaudos(): Laudo[] {
   }
 }
 
-function saveLaudos(laudos: Laudo[]) {
+function saveLaudosSync(laudos: Laudo[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(laudos));
 }
 
@@ -25,7 +25,7 @@ export function useLaudoStore() {
   const [laudos, setLaudos] = useState<Laudo[]>(loadLaudos);
 
   useEffect(() => {
-    saveLaudos(laudos);
+    saveLaudosSync(laudos);
   }, [laudos]);
 
   const criarLaudo = useCallback((titulo: string = 'Novo Laudo'): string => {
@@ -41,25 +41,33 @@ export function useLaudoStore() {
       criadoEm: now,
       atualizadoEm: now,
     };
-    setLaudos(prev => [novo, ...prev]);
+    const updated = [novo, ...loadLaudos()];
+    saveLaudosSync(updated);
+    setLaudos(updated);
     return id;
   }, []);
 
   const atualizarLaudo = useCallback((id: string, updates: Partial<Laudo>) => {
-    setLaudos(prev =>
-      prev.map(l =>
+    setLaudos(prev => {
+      const updated = prev.map(l =>
         l.id === id ? { ...l, ...updates, atualizadoEm: new Date().toISOString() } : l
-      )
-    );
+      );
+      saveLaudosSync(updated);
+      return updated;
+    });
   }, []);
 
   const removerLaudo = useCallback((id: string) => {
-    setLaudos(prev => prev.filter(l => l.id !== id));
+    setLaudos(prev => {
+      const updated = prev.filter(l => l.id !== id);
+      saveLaudosSync(updated);
+      return updated;
+    });
   }, []);
 
   const getLaudo = useCallback((id: string): Laudo | undefined => {
-    return laudos.find(l => l.id === id);
-  }, [laudos]);
+    return loadLaudos().find(l => l.id === id);
+  }, []);
 
   return { laudos, criarLaudo, atualizarLaudo, removerLaudo, getLaudo };
 }
