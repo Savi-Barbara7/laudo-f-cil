@@ -57,6 +57,10 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        page: "hsl(var(--page-bg))",
+        "editor-bg": "hsl(var(--editor-bg))",
+        "toolbar-bg": "hsl(var(--toolbar-bg))",
+        "toolbar-border": "hsl(var(--toolbar-border))",
       },
       borderRadius: {
         lg: "var(--radius)",
