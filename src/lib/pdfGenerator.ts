@@ -186,7 +186,7 @@ export function gerarPDF(laudo: Laudo) {
   // Count photo pages
   for (const lind of laudo.lindeiros) {
     for (const amb of lind.ambientes) {
-      estimatedPages += Math.ceil(amb.fotos.length / 4); // ~4 photos per page
+      estimatedPages += Math.ceil(amb.fotos.length / 6); // 6 photos per page
     }
   }
 
@@ -427,54 +427,60 @@ export function gerarPDF(laudo: Laudo) {
         doc.text(`📍 ${amb.nome || 'Sem nome'}`, MARGIN_LEFT + 2, ly);
         ly += 8;
 
-        // Photos grid: 2 per row
+        // Photos grid: 2 columns x 3 rows = 6 per page
         if (amb.fotos.length > 0) {
-          const photoW = (CONTENT_W - 5) / 2; // 2 columns with gap
-          const photoH = 55;
+          const GAP = 4;
+          const photoW = (CONTENT_W - GAP) / 2;
+          const photoH = 60;
+          const captionH = 6;
+          const cellH = photoH + captionH + 2;
+          const PHOTOS_PER_PAGE = 6;
+          const COLS = 2;
 
-          for (let fi = 0; fi < amb.fotos.length; fi += 2) {
-            if (ly + photoH + 10 > A4_H - MARGIN_BOTTOM) {
-              doc.addPage();
-              pageCounter.current++;
-              addHeaderFooter(doc, pageCounter.current, pageCounter.total);
-              ly = MARGIN_TOP;
+          for (let fi = 0; fi < amb.fotos.length; fi++) {
+            const posInPage = fi % PHOTOS_PER_PAGE;
+            const col = posInPage % COLS;
+            const row = Math.floor(posInPage / COLS);
+
+            // New page when starting a new group of 6, or if first photo won't fit
+            if (posInPage === 0) {
+              if (fi > 0 || ly + cellH > A4_H - MARGIN_BOTTOM) {
+                doc.addPage();
+                pageCounter.current++;
+                addHeaderFooter(doc, pageCounter.current, pageCounter.total);
+                ly = MARGIN_TOP;
+              }
             }
 
-            // Left photo
-            const foto1 = amb.fotos[fi];
+            const px = MARGIN_LEFT + col * (photoW + GAP);
+            const py = ly + row * cellH;
+
+            const foto = amb.fotos[fi];
             try {
-              doc.addImage(foto1.dataUrl, 'JPEG', MARGIN_LEFT, ly, photoW, photoH);
+              doc.addImage(foto.dataUrl, 'JPEG', px, py, photoW, photoH);
             } catch {
               doc.setDrawColor(200, 200, 200);
               doc.setFillColor(240, 240, 240);
-              doc.rect(MARGIN_LEFT, ly, photoW, photoH, 'FD');
+              doc.rect(px, py, photoW, photoH, 'FD');
             }
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(7);
             doc.setTextColor(...GRAY);
-            doc.text(foto1.legenda || `Fig:${String(fi + 1).padStart(4, '0')}`, MARGIN_LEFT + photoW / 2, ly + photoH + 4, {
-              align: 'center',
-            });
+            doc.text(
+              foto.legenda || `Fig:${String(fi + 1).padStart(4, '0')}`,
+              px + photoW / 2,
+              py + photoH + 4,
+              { align: 'center' }
+            );
 
-            // Right photo
-            if (fi + 1 < amb.fotos.length) {
-              const foto2 = amb.fotos[fi + 1];
-              const x2 = MARGIN_LEFT + photoW + 5;
-              try {
-                doc.addImage(foto2.dataUrl, 'JPEG', x2, ly, photoW, photoH);
-              } catch {
-                doc.setDrawColor(200, 200, 200);
-                doc.setFillColor(240, 240, 240);
-                doc.rect(x2, ly, photoW, photoH, 'FD');
-              }
-              doc.text(foto2.legenda || `Fig:${String(fi + 2).padStart(4, '0')}`, x2 + photoW / 2, ly + photoH + 4, {
-                align: 'center',
-              });
+            // After last photo in group or very last photo, advance ly
+            if (posInPage === PHOTOS_PER_PAGE - 1 || fi === amb.fotos.length - 1) {
+              const rowsUsed = row + 1;
+              ly = ly + rowsUsed * cellH + 2;
             }
-
-            ly += photoH + 10;
           }
-        } else {
+        }
+         else {
           doc.setFont('helvetica', 'italic');
           doc.setFontSize(8);
           doc.setTextColor(...GRAY);
