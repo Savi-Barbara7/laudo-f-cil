@@ -18,7 +18,28 @@ function loadLaudos(): Laudo[] {
 }
 
 function saveLaudosSync(laudos: Laudo[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(laudos));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(laudos));
+  } catch (e) {
+    console.warn('localStorage quota exceeded, stripping images and retrying...');
+    // Strip large base64 images to fit in storage
+    const stripped = laudos.map(l => ({
+      ...l,
+      dadosCapa: { ...l.dadosCapa, fotoCapaUrl: undefined },
+      lindeiros: l.lindeiros.map(lin => ({
+        ...lin,
+        ambientes: lin.ambientes.map(amb => ({
+          ...amb,
+          fotos: amb.fotos.map(f => ({ ...f, dataUrl: '' })),
+        })),
+      })),
+    }));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stripped));
+    } catch {
+      console.error('localStorage still full after stripping images');
+    }
+  }
 }
 
 export function useLaudoStore() {

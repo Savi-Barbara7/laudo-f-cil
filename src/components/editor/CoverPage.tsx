@@ -60,11 +60,25 @@ export function CoverPage({ dadosCapa, onUpdate }: CoverPageProps) {
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (file) {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                  onUpdate({ ...dadosCapa, fotoCapaUrl: ev.target?.result as string });
+                const img = new Image();
+                const url = URL.createObjectURL(file);
+                img.onload = () => {
+                  const MAX = 1200;
+                  let w = img.width, h = img.height;
+                  if (w > MAX || h > MAX) {
+                    const ratio = Math.min(MAX / w, MAX / h);
+                    w = Math.round(w * ratio);
+                    h = Math.round(h * ratio);
+                  }
+                  const canvas = document.createElement('canvas');
+                  canvas.width = w;
+                  canvas.height = h;
+                  canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+                  const compressed = canvas.toDataURL('image/jpeg', 0.7);
+                  URL.revokeObjectURL(url);
+                  onUpdate({ ...dadosCapa, fotoCapaUrl: compressed });
                 };
-                reader.readAsDataURL(file);
+                img.src = url;
               }
             }}
           />
