@@ -1,6 +1,7 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import type { DadosCapa } from '@/types/laudo';
 import { Input } from '@/components/ui/input';
+import { ImagePlus, X } from 'lucide-react';
 
 interface CoverPageProps {
   dadosCapa: DadosCapa;
@@ -34,9 +35,41 @@ export function CoverPage({ dadosCapa, onUpdate }: CoverPageProps) {
       </div>
 
       {/* Cover image area */}
-      <div className="my-4 flex h-[120mm] w-full items-center justify-center rounded border-2 border-dashed border-muted-foreground/20 bg-muted/30">
-        <p className="text-sm text-muted-foreground">Clique para adicionar foto da capa</p>
-      </div>
+      {dadosCapa.fotoCapaUrl ? (
+        <div className="group relative my-4 h-[120mm] w-full overflow-hidden rounded">
+          <img
+            src={dadosCapa.fotoCapaUrl}
+            alt="Foto da capa"
+            className="h-full w-full object-cover"
+          />
+          <button
+            onClick={() => onUpdate({ ...dadosCapa, fotoCapaUrl: undefined })}
+            className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-0 transition-opacity group-hover:opacity-100"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : (
+        <label className="my-4 flex h-[120mm] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded border-2 border-dashed border-muted-foreground/20 bg-muted/30 transition-colors hover:border-primary/40 hover:bg-muted/50">
+          <ImagePlus className="h-8 w-8 text-muted-foreground/50" />
+          <p className="text-sm text-muted-foreground">Clique para adicionar foto da capa</p>
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                  onUpdate({ ...dadosCapa, fotoCapaUrl: ev.target?.result as string });
+                };
+                reader.readAsDataURL(file);
+              }
+            }}
+          />
+        </label>
+      )}
 
       {/* Title block */}
       <div className="my-6 w-full text-center">
