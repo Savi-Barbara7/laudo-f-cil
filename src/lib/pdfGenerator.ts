@@ -213,13 +213,23 @@ export function gerarPDF(laudo: Laudo) {
   doc.setLineWidth(0.5);
   doc.line(MARGIN_LEFT, 42, A4_W - MARGIN_RIGHT, 42);
 
-  // Cover image placeholder
-  doc.setDrawColor(180, 180, 180);
-  doc.setFillColor(245, 245, 245);
-  doc.roundedRect(MARGIN_LEFT, 50, CONTENT_W, 100, 2, 2, 'FD');
-  doc.setFontSize(10);
-  doc.setTextColor(...GRAY);
-  doc.text('Foto do Empreendimento', A4_W / 2, 100, { align: 'center' });
+  // Cover image
+  if (laudo.dadosCapa.fotoCapaUrl) {
+    try {
+      doc.addImage(laudo.dadosCapa.fotoCapaUrl, 'JPEG', MARGIN_LEFT, 50, CONTENT_W, 100);
+    } catch {
+      doc.setDrawColor(180, 180, 180);
+      doc.setFillColor(245, 245, 245);
+      doc.roundedRect(MARGIN_LEFT, 50, CONTENT_W, 100, 2, 2, 'FD');
+    }
+  } else {
+    doc.setDrawColor(180, 180, 180);
+    doc.setFillColor(245, 245, 245);
+    doc.roundedRect(MARGIN_LEFT, 50, CONTENT_W, 100, 2, 2, 'FD');
+    doc.setFontSize(10);
+    doc.setTextColor(...GRAY);
+    doc.text('Foto do Empreendimento', A4_W / 2, 100, { align: 'center' });
+  }
 
   // Title
   doc.setFont('helvetica', 'bold');
