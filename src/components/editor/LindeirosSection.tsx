@@ -191,7 +191,7 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
             <Textarea
               value={lind.descricao}
               onChange={(e) => updateLindeiro(li, { descricao: e.target.value })}
-              className="mt-1 min-h-[60px] text-sm"
+              className="mt-1 min-h-[60px] resize-y text-sm"
               style={{ fontFamily: 'Arial, sans-serif' }}
             />
           </div>
@@ -265,6 +265,13 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
                 )}
               </div>
             ))}
+
+            {/* Add ambiente button at the bottom */}
+            {lind.ambientes.length > 0 && (
+              <Button variant="outline" size="sm" onClick={() => addAmbiente(li)} className="mt-2 w-full gap-1 text-xs">
+                <Plus className="h-3 w-3" /> Adicionar Ambiente
+              </Button>
+            )}
           </div>
         </div>
       ))}

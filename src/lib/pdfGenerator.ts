@@ -454,14 +454,8 @@ export async function gerarPDF(laudo: Laudo) {
           ly = MARGIN_TOP;
         }
 
-        // Ambiente name
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.setTextColor(...BLACK);
-        doc.setFillColor(245, 245, 245);
-        doc.roundedRect(MARGIN_LEFT, ly - 4, CONTENT_W, 7, 1, 1, 'F');
-        doc.text(`> ${amb.nome || 'Sem nome'}`, MARGIN_LEFT + 2, ly);
-        ly += 8;
+        // Ambiente name - always on the same page as first photos
+        // Will be printed at the top of the photo page
 
         // Photos grid: 2 columns x 3 rows = 6 per page
         if (amb.fotos.length > 0) {
@@ -487,6 +481,17 @@ export async function gerarPDF(laudo: Laudo) {
               pageCounter.current++;
               addHeaderFooter(doc, pageCounter.current, pageCounter.total);
               ly = MARGIN_TOP;
+
+              // Print ambiente title at top of first photo page
+              if (fi === 0) {
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(10);
+                doc.setTextColor(...BLACK);
+                doc.setFillColor(245, 245, 245);
+                doc.roundedRect(MARGIN_LEFT, ly - 4, CONTENT_W, 7, 1, 1, 'F');
+                doc.text(`> ${amb.nome || 'Sem nome'}`, MARGIN_LEFT + 2, ly);
+                ly += 8;
+              }
             }
 
             const px = MARGIN_LEFT + col * (photoW + GAP);
