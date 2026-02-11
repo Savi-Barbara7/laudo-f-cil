@@ -2,6 +2,21 @@ import jsPDF from 'jspdf';
 import type { Laudo } from '@/types/laudo';
 import { SECOES_NAVEGAVEIS } from '@/data/defaultTexts';
 
+async function fetchImageAsBase64(url: string): Promise<string> {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return '';
+  }
+}
+
 const A4_W = 210;
 const A4_H = 297;
 const MARGIN_LEFT = 20;
@@ -174,7 +189,28 @@ function writeSectionWithPageBreaks(
   return y;
 }
 
-export function gerarPDF(laudo: Laudo) {
+export async function gerarPDF(laudo: Laudo) {
+  // Pre-fetch all images as base64 for jsPDF
+  const imageCache = new Map<string, string>();
+  const urls: string[] = [];
+  if (laudo.dadosCapa.fotoCapaUrl && laudo.dadosCapa.fotoCapaUrl.startsWith('http')) {
+    urls.push(laudo.dadosCapa.fotoCapaUrl);
+  }
+  for (const lind of laudo.lindeiros) {
+    for (const amb of lind.ambientes) {
+      for (const foto of amb.fotos) {
+        if (foto.dataUrl && foto.dataUrl.startsWith('http')) {
+          urls.push(foto.dataUrl);
+        }
+      }
+    }
+  }
+  await Promise.all(urls.map(async (url) => {
+    const b64 = await fetchImageAsBase64(url);
+    if (b64) imageCache.set(url, b64);
+  }));
+
+  const getImage = (src: string): string => imageCache.get(src) || src;
   const doc = new jsPDF('p', 'mm', 'a4');
 
   // Calculate total pages (estimate)
@@ -216,7 +252,7 @@ export function gerarPDF(laudo: Laudo) {
   // Cover image
   if (laudo.dadosCapa.fotoCapaUrl) {
     try {
-      doc.addImage(laudo.dadosCapa.fotoCapaUrl, 'JPEG', MARGIN_LEFT, 50, CONTENT_W, 100);
+      doc.addImage(getImage(laudo.dadosCapa.fotoCapaUrl), 'JPEG', MARGIN_LEFT, 50, CONTENT_W, 100);
     } catch {
       doc.setDrawColor(180, 180, 180);
       doc.setFillColor(245, 245, 245);
@@ -458,7 +494,7 @@ export function gerarPDF(laudo: Laudo) {
             const foto = amb.fotos[fi];
             if (foto.dataUrl && foto.dataUrl.length > 10) {
               try {
-                doc.addImage(foto.dataUrl, 'JPEG', px, py, photoW, photoH);
+                doc.addImage(getImage(foto.dataUrl), 'JPEG', px, py, photoW, photoH);
               } catch {
                 doc.setDrawColor(200, 200, 200);
                 doc.setFillColor(240, 240, 240);
