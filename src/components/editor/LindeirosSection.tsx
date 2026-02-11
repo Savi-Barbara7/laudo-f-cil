@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Plus, Trash2, ImagePlus, X, Loader2 } from 'lucide-react';
 import { uploadImage } from '@/lib/storageHelper';
 
@@ -14,6 +15,8 @@ interface LindeirosProps {
 
 export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
   const [uploadingAmb, setUploadingAmb] = useState<string | null>(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+
   const addLindeiro = () => {
     const novo: Lindeiro = {
       id: crypto.randomUUID(),
@@ -72,17 +75,20 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
       const fotos = [...ambs[ambIndex].fotos];
       const startCount = fotos.length;
 
-      for (let i = 0; i < files.length; i++) {
+      // Upload all in parallel for speed
+      const uploads = Array.from(files).map(async (file, i) => {
         const path = `lindeiros/${lindeiros[lindIndex].id}/${ambId}/${crypto.randomUUID()}.jpg`;
-        const publicUrl = await uploadImage(files[i], path);
-        const newFoto: Foto = {
+        const publicUrl = await uploadImage(file, path);
+        return {
           id: crypto.randomUUID(),
           dataUrl: publicUrl,
           legenda: `Foto ${startCount + i + 1}`,
           ordem: startCount + i,
-        };
-        fotos.push(newFoto);
-      }
+        } as Foto;
+      });
+
+      const newFotos = await Promise.all(uploads);
+      fotos.push(...newFotos);
 
       ambs[ambIndex] = { ...ambs[ambIndex], fotos: [...fotos] };
       updated[lindIndex] = { ...updated[lindIndex], ambientes: [...ambs] };
@@ -117,6 +123,15 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
 
   return (
     <div>
+      {/* Lightbox dialog */}
+      <Dialog open={!!lightboxSrc} onOpenChange={() => setLightboxSrc(null)}>
+        <DialogContent className="flex max-h-[90vh] max-w-[90vw] items-center justify-center border-none bg-black/90 p-2">
+          {lightboxSrc && (
+            <img src={lightboxSrc} alt="Foto ampliada" className="max-h-[85vh] max-w-full rounded object-contain" />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Each lindeiro as an A4 page */}
       {lindeiros.map((lind, li) => (
         <div key={lind.id} className="a4-page mb-8">
@@ -192,7 +207,7 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
               value={lind.descricao}
               onChange={(e) => updateLindeiro(li, { descricao: e.target.value })}
               className="mt-1 min-h-[60px] resize-y text-sm"
-              style={{ fontFamily: 'Arial, sans-serif' }}
+              style={{ fontFamily: 'Arial, sans-serif', wordBreak: 'break-word', overflowWrap: 'break-word' }}
             />
           </div>
 
@@ -219,24 +234,6 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
                   </Button>
                 </div>
 
-                {/* Photo upload */}
-                <label className="flex cursor-pointer items-center gap-2 rounded border border-dashed border-muted-foreground/30 p-2 text-xs text-muted-foreground hover:bg-muted/40">
-                  {uploadingAmb === amb.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <ImagePlus className="h-4 w-4" />
-                  )}
-                  {uploadingAmb === amb.id ? 'Enviando...' : 'Adicionar fotos'}
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    className="hidden"
-                    disabled={uploadingAmb === amb.id}
-                    onChange={(e) => e.target.files && handleFotoUpload(li, ai, e.target.files)}
-                  />
-                </label>
-
                 {/* Photo grid: 2 per row */}
                 {amb.fotos.length > 0 && (
                   <div className="mt-2 grid grid-cols-2 gap-2">
@@ -245,7 +242,9 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
                         <img
                           src={foto.dataUrl}
                           alt={foto.legenda}
-                          className="h-32 w-full rounded border object-cover"
+                          className="h-32 w-full cursor-pointer rounded border object-cover transition-opacity hover:opacity-80"
+                          loading="lazy"
+                          onClick={() => setLightboxSrc(foto.dataUrl)}
                         />
                         <button
                           onClick={() => removeFoto(li, ai, fi)}
@@ -263,6 +262,24 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
                     ))}
                   </div>
                 )}
+
+                {/* Upload button after photos */}
+                <label className="mt-2 flex cursor-pointer items-center gap-2 rounded border border-dashed border-muted-foreground/30 p-2 text-xs text-muted-foreground hover:bg-muted/40">
+                  {uploadingAmb === amb.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ImagePlus className="h-4 w-4" />
+                  )}
+                  {uploadingAmb === amb.id ? 'Enviando...' : 'Adicionar fotos'}
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploadingAmb === amb.id}
+                    onChange={(e) => e.target.files && handleFotoUpload(li, ai, e.target.files)}
+                  />
+                </label>
               </div>
             ))}
 
