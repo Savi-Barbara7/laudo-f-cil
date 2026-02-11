@@ -467,25 +467,26 @@ export async function gerarPDF(laudo: Laudo) {
         if (amb.fotos.length > 0) {
           const GAP = 4;
           const photoW = (CONTENT_W - GAP) / 2;
-          const photoH = 55;
-          const captionH = 6;
-          const cellH = photoH + captionH + 2;
           const PHOTOS_PER_PAGE = 6;
           const COLS = 2;
+          const ROWS = 3;
+          const captionH = 6;
+          // Calculate photoH so 3 rows fit in available space
+          const availableH = A4_H - MARGIN_TOP - MARGIN_BOTTOM - 5;
+          const photoH = Math.floor((availableH - ROWS * (captionH + GAP)) / ROWS);
+          const cellH = photoH + captionH + GAP;
 
           for (let fi = 0; fi < amb.fotos.length; fi++) {
             const posInPage = fi % PHOTOS_PER_PAGE;
             const col = posInPage % COLS;
             const row = Math.floor(posInPage / COLS);
 
-            // New page when starting a new group of 6, or if first photo won't fit
+            // New page for each group of 6 photos
             if (posInPage === 0) {
-              if (fi > 0 || ly + cellH > A4_H - MARGIN_BOTTOM) {
-                doc.addPage();
-                pageCounter.current++;
-                addHeaderFooter(doc, pageCounter.current, pageCounter.total);
-                ly = MARGIN_TOP;
-              }
+              doc.addPage();
+              pageCounter.current++;
+              addHeaderFooter(doc, pageCounter.current, pageCounter.total);
+              ly = MARGIN_TOP;
             }
 
             const px = MARGIN_LEFT + col * (photoW + GAP);
@@ -495,11 +496,6 @@ export async function gerarPDF(laudo: Laudo) {
             if (foto.dataUrl && foto.dataUrl.length > 10) {
               try {
                 const imgData = getImage(foto.dataUrl);
-                // Draw border/background first
-                doc.setDrawColor(220, 220, 220);
-                doc.setFillColor(250, 250, 250);
-                doc.rect(px, py, photoW, photoH, 'FD');
-                // Add image covering the area (object-fit: cover style)
                 doc.addImage(imgData, 'JPEG', px, py, photoW, photoH);
               } catch {
                 doc.setDrawColor(200, 200, 200);
@@ -521,7 +517,6 @@ export async function gerarPDF(laudo: Laudo) {
               { align: 'center' }
             );
 
-            // After last photo in group or very last photo, advance ly
             if (posInPage === PHOTOS_PER_PAGE - 1 || fi === amb.fotos.length - 1) {
               const rowsUsed = row + 1;
               ly = ly + rowsUsed * cellH + 2;
