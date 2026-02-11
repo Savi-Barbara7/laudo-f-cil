@@ -48,7 +48,7 @@ const LaudoEditor = () => {
         onVoltar={() => navigate('/')}
         onExportPDF={async () => {
           try {
-            gerarPDF(laudo);
+            await gerarPDF(laudo);
             toast({ title: 'PDF gerado com sucesso!', description: 'O download começou automaticamente.' });
           } catch (err) {
             toast({ title: 'Erro ao gerar PDF', description: String(err), variant: 'destructive' });

@@ -1,7 +1,8 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useState } from 'react';
 import type { DadosCapa } from '@/types/laudo';
 import { Input } from '@/components/ui/input';
-import { ImagePlus, X } from 'lucide-react';
+import { ImagePlus, X, Loader2 } from 'lucide-react';
+import { uploadImage } from '@/lib/storageHelper';
 
 interface CoverPageProps {
   dadosCapa: DadosCapa;
@@ -9,12 +10,27 @@ interface CoverPageProps {
 }
 
 export function CoverPage({ dadosCapa, onUpdate }: CoverPageProps) {
+  const [uploading, setUploading] = useState(false);
+
   const handleChange = useCallback(
     (field: keyof DadosCapa, value: string | number) => {
       onUpdate({ ...dadosCapa, [field]: value });
     },
     [dadosCapa, onUpdate]
   );
+
+  const handleCoverUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const path = `capas/${crypto.randomUUID()}.jpg`;
+      const publicUrl = await uploadImage(file, path);
+      onUpdate({ ...dadosCapa, fotoCapaUrl: publicUrl });
+    } catch (err) {
+      console.error('Upload failed:', err);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <div className="a4-page flex flex-col items-center justify-between" style={{ minHeight: '297mm' }}>
@@ -50,36 +66,23 @@ export function CoverPage({ dadosCapa, onUpdate }: CoverPageProps) {
           </button>
         </div>
       ) : (
-        <label className="my-4 flex h-[120mm] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded border-2 border-dashed border-muted-foreground/20 bg-muted/30 transition-colors hover:border-primary/40 hover:bg-muted/50">
-          <ImagePlus className="h-8 w-8 text-muted-foreground/50" />
-          <p className="text-sm text-muted-foreground">Clique para adicionar foto da capa</p>
+      <label className="my-4 flex h-[120mm] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded border-2 border-dashed border-muted-foreground/20 bg-muted/30 transition-colors hover:border-primary/40 hover:bg-muted/50">
+          {uploading ? (
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/50" />
+          ) : (
+            <ImagePlus className="h-8 w-8 text-muted-foreground/50" />
+          )}
+          <p className="text-sm text-muted-foreground">
+            {uploading ? 'Enviando...' : 'Clique para adicionar foto da capa'}
+          </p>
           <input
             type="file"
             accept="image/*"
             className="hidden"
+            disabled={uploading}
             onChange={(e) => {
               const file = e.target.files?.[0];
-              if (file) {
-                const img = new Image();
-                const url = URL.createObjectURL(file);
-                img.onload = () => {
-                  const MAX = 1200;
-                  let w = img.width, h = img.height;
-                  if (w > MAX || h > MAX) {
-                    const ratio = Math.min(MAX / w, MAX / h);
-                    w = Math.round(w * ratio);
-                    h = Math.round(h * ratio);
-                  }
-                  const canvas = document.createElement('canvas');
-                  canvas.width = w;
-                  canvas.height = h;
-                  canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
-                  const compressed = canvas.toDataURL('image/jpeg', 0.7);
-                  URL.revokeObjectURL(url);
-                  onUpdate({ ...dadosCapa, fotoCapaUrl: compressed });
-                };
-                img.src = url;
-              }
+              if (file) handleCoverUpload(file);
             }}
           />
         </label>

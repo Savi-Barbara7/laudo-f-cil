@@ -1,10 +1,11 @@
-import { useCallback } from 'react';
+import { useState } from 'react';
 import type { Lindeiro, Ambiente, Foto } from '@/types/laudo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, ImagePlus, X } from 'lucide-react';
+import { Plus, Trash2, ImagePlus, X, Loader2 } from 'lucide-react';
+import { uploadImage } from '@/lib/storageHelper';
 
 interface LindeirosProps {
   lindeiros: Lindeiro[];
@@ -12,6 +13,7 @@ interface LindeirosProps {
 }
 
 export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
+  const [uploadingAmb, setUploadingAmb] = useState<string | null>(null);
   const addLindeiro = () => {
     const novo: Lindeiro = {
       id: crypto.randomUUID(),
@@ -61,50 +63,35 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
     onUpdate(updated);
   };
 
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        const MAX = 800;
-        let w = img.width, h = img.height;
-        if (w > MAX || h > MAX) {
-          const ratio = Math.min(MAX / w, MAX / h);
-          w = Math.round(w * ratio);
-          h = Math.round(h * ratio);
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
-        const compressed = canvas.toDataURL('image/jpeg', 0.6);
-        URL.revokeObjectURL(url);
-        resolve(compressed);
-      };
-      img.src = url;
-    });
-  };
-
   const handleFotoUpload = async (lindIndex: number, ambIndex: number, files: FileList) => {
-    const updated = [...lindeiros];
-    const ambs = [...updated[lindIndex].ambientes];
-    const fotos = [...ambs[ambIndex].fotos];
-    const startCount = fotos.length;
+    const ambId = lindeiros[lindIndex].ambientes[ambIndex].id;
+    setUploadingAmb(ambId);
+    try {
+      const updated = [...lindeiros];
+      const ambs = [...updated[lindIndex].ambientes];
+      const fotos = [...ambs[ambIndex].fotos];
+      const startCount = fotos.length;
 
-    for (let i = 0; i < files.length; i++) {
-      const dataUrl = await compressImage(files[i]);
-      const newFoto: Foto = {
-        id: crypto.randomUUID(),
-        dataUrl,
-        legenda: `Foto ${startCount + i + 1}`,
-        ordem: startCount + i,
-      };
-      fotos.push(newFoto);
+      for (let i = 0; i < files.length; i++) {
+        const path = `lindeiros/${lindeiros[lindIndex].id}/${ambId}/${crypto.randomUUID()}.jpg`;
+        const publicUrl = await uploadImage(files[i], path);
+        const newFoto: Foto = {
+          id: crypto.randomUUID(),
+          dataUrl: publicUrl,
+          legenda: `Foto ${startCount + i + 1}`,
+          ordem: startCount + i,
+        };
+        fotos.push(newFoto);
+      }
+
+      ambs[ambIndex] = { ...ambs[ambIndex], fotos: [...fotos] };
+      updated[lindIndex] = { ...updated[lindIndex], ambientes: [...ambs] };
+      onUpdate([...updated]);
+    } catch (err) {
+      console.error('Upload failed:', err);
+    } finally {
+      setUploadingAmb(null);
     }
-
-    ambs[ambIndex] = { ...ambs[ambIndex], fotos: [...fotos] };
-    updated[lindIndex] = { ...updated[lindIndex], ambientes: [...ambs] };
-    onUpdate([...updated]);
   };
 
   const removeFoto = (lindIndex: number, ambIndex: number, fotoIndex: number) => {
@@ -234,13 +221,18 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
 
                 {/* Photo upload */}
                 <label className="flex cursor-pointer items-center gap-2 rounded border border-dashed border-muted-foreground/30 p-2 text-xs text-muted-foreground hover:bg-muted/40">
-                  <ImagePlus className="h-4 w-4" />
-                  Adicionar fotos
+                  {uploadingAmb === amb.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ImagePlus className="h-4 w-4" />
+                  )}
+                  {uploadingAmb === amb.id ? 'Enviando...' : 'Adicionar fotos'}
                   <input
                     type="file"
                     multiple
                     accept="image/*"
                     className="hidden"
+                    disabled={uploadingAmb === amb.id}
                     onChange={(e) => e.target.files && handleFotoUpload(li, ai, e.target.files)}
                   />
                 </label>
