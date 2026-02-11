@@ -460,14 +460,14 @@ export async function gerarPDF(laudo: Laudo) {
         doc.setTextColor(...BLACK);
         doc.setFillColor(245, 245, 245);
         doc.roundedRect(MARGIN_LEFT, ly - 4, CONTENT_W, 7, 1, 1, 'F');
-        doc.text(`📍 ${amb.nome || 'Sem nome'}`, MARGIN_LEFT + 2, ly);
+        doc.text(`> ${amb.nome || 'Sem nome'}`, MARGIN_LEFT + 2, ly);
         ly += 8;
 
         // Photos grid: 2 columns x 3 rows = 6 per page
         if (amb.fotos.length > 0) {
           const GAP = 4;
           const photoW = (CONTENT_W - GAP) / 2;
-          const photoH = 60;
+          const photoH = 55;
           const captionH = 6;
           const cellH = photoH + captionH + 2;
           const PHOTOS_PER_PAGE = 6;
@@ -494,7 +494,13 @@ export async function gerarPDF(laudo: Laudo) {
             const foto = amb.fotos[fi];
             if (foto.dataUrl && foto.dataUrl.length > 10) {
               try {
-                doc.addImage(getImage(foto.dataUrl), 'JPEG', px, py, photoW, photoH);
+                const imgData = getImage(foto.dataUrl);
+                // Draw border/background first
+                doc.setDrawColor(220, 220, 220);
+                doc.setFillColor(250, 250, 250);
+                doc.rect(px, py, photoW, photoH, 'FD');
+                // Add image covering the area (object-fit: cover style)
+                doc.addImage(imgData, 'JPEG', px, py, photoW, photoH);
               } catch {
                 doc.setDrawColor(200, 200, 200);
                 doc.setFillColor(240, 240, 240);
@@ -509,7 +515,7 @@ export async function gerarPDF(laudo: Laudo) {
             doc.setFontSize(7);
             doc.setTextColor(...GRAY);
             doc.text(
-              foto.legenda || `Fig:${String(fi + 1).padStart(4, '0')}`,
+              foto.legenda || `Foto ${fi + 1}`,
               px + photoW / 2,
               py + photoH + 4,
               { align: 'center' }
