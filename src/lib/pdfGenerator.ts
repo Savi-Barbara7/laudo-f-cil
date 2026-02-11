@@ -312,56 +312,11 @@ export async function gerarPDF(laudo: Laudo) {
     { align: 'center', maxWidth: CONTENT_W }
   );
 
-  // ==================== INDEX PAGE ====================
+  // ==================== INDEX PAGE (placeholder - rebuilt at end) ====================
   doc.addPage();
   pageCounter.current++;
+  const indexPageNum = pageCounter.current; // remember which page is the index
   addHeaderFooter(doc, pageCounter.current, pageCounter.total);
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.setTextColor(...PRIMARY_COLOR);
-  doc.text('ÍNDICE', A4_W / 2, MARGIN_TOP + 5, { align: 'center' });
-
-  let indexY = MARGIN_TOP + 18;
-  const indexSections = SECOES_NAVEGAVEIS.filter((s) => s.id !== 'capa' && s.id !== 'indice');
-  doc.setFontSize(10);
-  for (let i = 0; i < indexSections.length; i++) {
-    const sec = indexSections[i];
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...BLACK);
-    doc.text(sec.label, MARGIN_LEFT, indexY);
-
-    // Dotted line
-    const labelWidth = doc.getTextWidth(sec.label);
-    const pageNumStr = String(i + 3);
-    const pageNumWidth = doc.getTextWidth(pageNumStr);
-    const dotsStart = MARGIN_LEFT + labelWidth + 2;
-    const dotsEnd = A4_W - MARGIN_RIGHT - pageNumWidth - 2;
-    doc.setTextColor(...GRAY);
-    let dotX = dotsStart;
-    while (dotX < dotsEnd) {
-      doc.text('.', dotX, indexY);
-      dotX += 1.5;
-    }
-    doc.text(pageNumStr, A4_W - MARGIN_RIGHT, indexY, { align: 'right' });
-    indexY += 7;
-  }
-
-  // Add lindeiros to index if any
-  if (laudo.lindeiros.length > 0) {
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...BLACK);
-    doc.text('VISTORIA DOS LINDEIROS', MARGIN_LEFT, indexY + 3);
-    indexY += 10;
-    doc.setFont('helvetica', 'normal');
-    for (let i = 0; i < laudo.lindeiros.length; i++) {
-      const lind = laudo.lindeiros[i];
-      const label = `Lindeiro ${i + 1}: ${lind.endereco || 'Sem endereço'}`;
-      doc.setTextColor(...BLACK);
-      doc.text(label, MARGIN_LEFT + 5, indexY);
-      indexY += 6;
-    }
-  }
 
   // ==================== SECTION PAGES ====================
   const sectionLabels: Record<string, string> = {};
@@ -380,6 +335,9 @@ export async function gerarPDF(laudo: Laudo) {
   }
 
   // ==================== LINDEIROS PAGES ====================
+  // Track page numbers for each ambiente for the index
+  const ambientePages: Map<string, { start: number; end: number }> = new Map();
+
   if (laudo.lindeiros.length > 0) {
     doc.addPage();
     pageCounter.current++;
@@ -428,7 +386,7 @@ export async function gerarPDF(laudo: Laudo) {
       doc.text(`Estado de Conservação: ${lind.estadoConservacao}`, MARGIN_LEFT, ly);
       ly += 7;
 
-      // Description
+      // Description with automatic page breaks
       if (lind.descricao) {
         doc.setFontSize(9);
         const descLines = doc.splitTextToSize(lind.descricao, CONTENT_W);
@@ -446,39 +404,55 @@ export async function gerarPDF(laudo: Laudo) {
       }
 
       // Ambientes with photos
-      for (const amb of lind.ambientes) {
-        // Ambiente title
-        if (ly > A4_H - MARGIN_BOTTOM - 30) {
+      for (let ai = 0; ai < lind.ambientes.length; ai++) {
+        const amb = lind.ambientes[ai];
+        const ambKey = `L${li + 1}-${ai}`;
+        const ambTitle = `> ${amb.nome || 'Sem nome'}`;
+        const TITLE_H = 10; // height of title block
+
+        // Helper to draw the ambiente title bar
+        const drawAmbienteTitle = (atY: number) => {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(10);
+          doc.setTextColor(...BLACK);
+          doc.setFillColor(245, 245, 245);
+          doc.roundedRect(MARGIN_LEFT, atY - 4, CONTENT_W, 7, 1, 1, 'F');
+          doc.text(ambTitle, MARGIN_LEFT + 2, atY);
+        };
+
+        // Ensure title + at least one photo row fit; otherwise new page
+        const GAP = 4;
+        const photoW = (CONTENT_W - GAP) / 2;
+        const captionH = 6;
+        const photoH = 55;
+        const cellH = photoH + captionH + GAP;
+        const minNeeded = TITLE_H + (amb.fotos.length > 0 ? cellH : 10);
+
+        if (ly + minNeeded > A4_H - MARGIN_BOTTOM - 5) {
           doc.addPage();
           pageCounter.current++;
           addHeaderFooter(doc, pageCounter.current, pageCounter.total);
           ly = MARGIN_TOP;
         }
 
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.setTextColor(...BLACK);
-        doc.setFillColor(245, 245, 245);
-        doc.roundedRect(MARGIN_LEFT, ly - 4, CONTENT_W, 7, 1, 1, 'F');
-        doc.text(`> ${amb.nome || 'Sem nome'}`, MARGIN_LEFT + 2, ly);
-        ly += 10;
+        // Draw title
+        drawAmbienteTitle(ly);
+        const startPage = pageCounter.current;
+        ly += TITLE_H;
 
-        // Photos grid: 2 columns, placed inline with page breaks
+        // Photos grid
         if (amb.fotos.length > 0) {
-          const GAP = 4;
-          const photoW = (CONTENT_W - GAP) / 2;
-          const captionH = 6;
-          const photoH = 55;
-          const cellH = photoH + captionH + GAP;
-
           let fi = 0;
           while (fi < amb.fotos.length) {
-            // Check if we need a new page for the next row of 2 photos
+            // Check if we need a new page for the next row
             if (ly + cellH > A4_H - MARGIN_BOTTOM - 5) {
               doc.addPage();
               pageCounter.current++;
               addHeaderFooter(doc, pageCounter.current, pageCounter.total);
               ly = MARGIN_TOP;
+              // Repeat ambiente title on new page
+              drawAmbienteTitle(ly);
+              ly += TITLE_H;
             }
 
             // Print a row of 2 photos
@@ -521,6 +495,7 @@ export async function gerarPDF(laudo: Laudo) {
           ly += 6;
         }
 
+        ambientePages.set(ambKey, { start: startPage, end: pageCounter.current });
         ly += 4;
       }
 
@@ -530,6 +505,95 @@ export async function gerarPDF(laudo: Laudo) {
 
   // Update total pages
   const actualTotal = pageCounter.current;
+
+  // ==================== REBUILD INDEX PAGE ====================
+  doc.setPage(indexPageNum);
+  // Clear entire content area
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, MARGIN_TOP - 5, A4_W, A4_H - MARGIN_TOP - MARGIN_BOTTOM + 5, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(...PRIMARY_COLOR);
+  doc.text('ÍNDICE', A4_W / 2, MARGIN_TOP + 5, { align: 'center' });
+
+  let indexY = MARGIN_TOP + 18;
+  const indexSections = SECOES_NAVEGAVEIS.filter((s) => s.id !== 'capa' && s.id !== 'indice');
+  doc.setFontSize(10);
+
+  const drawIndexLine = (label: string, pageStr: string, y: number) => {
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...BLACK);
+    doc.text(label, MARGIN_LEFT, y);
+    const labelWidth = doc.getTextWidth(label);
+    const pageNumWidth = doc.getTextWidth(pageStr);
+    const dotsStart = MARGIN_LEFT + labelWidth + 2;
+    const dotsEnd = A4_W - MARGIN_RIGHT - pageNumWidth - 2;
+    doc.setTextColor(...GRAY);
+    let dotX = dotsStart;
+    while (dotX < dotsEnd) {
+      doc.text('.', dotX, y);
+      dotX += 1.5;
+    }
+    doc.text(pageStr, A4_W - MARGIN_RIGHT, y, { align: 'right' });
+  };
+
+  for (let i = 0; i < indexSections.length; i++) {
+    drawIndexLine(indexSections[i].label, String(i + 3), indexY);
+    indexY += 7;
+  }
+
+  // Add lindeiros + ambientes with page ranges
+  if (laudo.lindeiros.length > 0) {
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...BLACK);
+    doc.text('VISTORIA DOS LINDEIROS', MARGIN_LEFT, indexY + 3);
+    indexY += 10;
+
+    for (let li = 0; li < laudo.lindeiros.length; li++) {
+      const lind = laudo.lindeiros[li];
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...BLACK);
+      doc.text(`Lindeiro ${li + 1}: ${lind.endereco || 'Sem endereço'}`, MARGIN_LEFT + 5, indexY);
+      indexY += 6;
+
+      // Ambientes with page ranges
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      for (let ai = 0; ai < lind.ambientes.length; ai++) {
+        const amb = lind.ambientes[ai];
+        const ambKey = `L${li + 1}-${ai}`;
+        const pages = ambientePages.get(ambKey);
+        const ambLabel = amb.nome || 'Sem nome';
+        let pageStr = '';
+        if (pages) {
+          pageStr = pages.start === pages.end
+            ? `${pages.start}`
+            : `${pages.start} a ${pages.end}`;
+        }
+        doc.setTextColor(...BLACK);
+        const fullLabel = `   ${ambLabel}`;
+        doc.text(fullLabel, MARGIN_LEFT + 10, indexY);
+        if (pageStr) {
+          const lw = doc.getTextWidth(fullLabel);
+          const pw = doc.getTextWidth(pageStr);
+          const ds = MARGIN_LEFT + 10 + lw + 2;
+          const de = A4_W - MARGIN_RIGHT - pw - 2;
+          doc.setTextColor(...GRAY);
+          let dx = ds;
+          while (dx < de) {
+            doc.text('.', dx, indexY);
+            dx += 1.5;
+          }
+          doc.text(pageStr, A4_W - MARGIN_RIGHT, indexY, { align: 'right' });
+        }
+        indexY += 5;
+      }
+      indexY += 2;
+    }
+  }
+
   // Go back and update footers with correct total
   for (let i = 2; i <= actualTotal; i++) {
     doc.setPage(i);

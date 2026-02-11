@@ -206,7 +206,7 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
             <Textarea
               value={lind.descricao}
               onChange={(e) => updateLindeiro(li, { descricao: e.target.value })}
-              className="mt-1 min-h-[60px] resize-y text-sm"
+              className="mt-1 min-h-[200px] resize-y text-sm"
               style={{ fontFamily: 'Arial, sans-serif', wordBreak: 'break-word', overflowWrap: 'break-word' }}
             />
           </div>
