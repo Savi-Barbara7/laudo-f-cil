@@ -447,88 +447,73 @@ export async function gerarPDF(laudo: Laudo) {
 
       // Ambientes with photos
       for (const amb of lind.ambientes) {
-        if (ly > A4_H - 60) {
+        // Ambiente title
+        if (ly > A4_H - MARGIN_BOTTOM - 30) {
           doc.addPage();
           pageCounter.current++;
           addHeaderFooter(doc, pageCounter.current, pageCounter.total);
           ly = MARGIN_TOP;
         }
 
-        // Ambiente name - always on the same page as first photos
-        // Will be printed at the top of the photo page
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(...BLACK);
+        doc.setFillColor(245, 245, 245);
+        doc.roundedRect(MARGIN_LEFT, ly - 4, CONTENT_W, 7, 1, 1, 'F');
+        doc.text(`> ${amb.nome || 'Sem nome'}`, MARGIN_LEFT + 2, ly);
+        ly += 10;
 
-        // Photos grid: 2 columns x 3 rows = 6 per page
+        // Photos grid: 2 columns, placed inline with page breaks
         if (amb.fotos.length > 0) {
           const GAP = 4;
           const photoW = (CONTENT_W - GAP) / 2;
-          const PHOTOS_PER_PAGE = 6;
-          const COLS = 2;
-          const ROWS = 3;
           const captionH = 6;
-          // Calculate photoH so 3 rows fit in available space
-          const availableH = A4_H - MARGIN_TOP - MARGIN_BOTTOM - 5;
-          const photoH = Math.floor((availableH - ROWS * (captionH + GAP)) / ROWS);
+          const photoH = 55;
           const cellH = photoH + captionH + GAP;
 
-          for (let fi = 0; fi < amb.fotos.length; fi++) {
-            const posInPage = fi % PHOTOS_PER_PAGE;
-            const col = posInPage % COLS;
-            const row = Math.floor(posInPage / COLS);
-
-            // New page for each group of 6 photos
-            if (posInPage === 0) {
+          let fi = 0;
+          while (fi < amb.fotos.length) {
+            // Check if we need a new page for the next row of 2 photos
+            if (ly + cellH > A4_H - MARGIN_BOTTOM - 5) {
               doc.addPage();
               pageCounter.current++;
               addHeaderFooter(doc, pageCounter.current, pageCounter.total);
               ly = MARGIN_TOP;
-
-              // Print ambiente title at top of first photo page
-              if (fi === 0) {
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(10);
-                doc.setTextColor(...BLACK);
-                doc.setFillColor(245, 245, 245);
-                doc.roundedRect(MARGIN_LEFT, ly - 4, CONTENT_W, 7, 1, 1, 'F');
-                doc.text(`> ${amb.nome || 'Sem nome'}`, MARGIN_LEFT + 2, ly);
-                ly += 8;
-              }
             }
 
-            const px = MARGIN_LEFT + col * (photoW + GAP);
-            const py = ly + row * cellH;
+            // Print a row of 2 photos
+            for (let col = 0; col < 2 && fi < amb.fotos.length; col++, fi++) {
+              const px = MARGIN_LEFT + col * (photoW + GAP);
+              const py = ly;
 
-            const foto = amb.fotos[fi];
-            if (foto.dataUrl && foto.dataUrl.length > 10) {
-              try {
-                const imgData = getImage(foto.dataUrl);
-                doc.addImage(imgData, 'JPEG', px, py, photoW, photoH);
-              } catch {
+              const foto = amb.fotos[fi];
+              if (foto.dataUrl && foto.dataUrl.length > 10) {
+                try {
+                  const imgData = getImage(foto.dataUrl);
+                  doc.addImage(imgData, 'JPEG', px, py, photoW, photoH);
+                } catch {
+                  doc.setDrawColor(200, 200, 200);
+                  doc.setFillColor(240, 240, 240);
+                  doc.rect(px, py, photoW, photoH, 'FD');
+                }
+              } else {
                 doc.setDrawColor(200, 200, 200);
                 doc.setFillColor(240, 240, 240);
                 doc.rect(px, py, photoW, photoH, 'FD');
               }
-            } else {
-              doc.setDrawColor(200, 200, 200);
-              doc.setFillColor(240, 240, 240);
-              doc.rect(px, py, photoW, photoH, 'FD');
+              doc.setFont('helvetica', 'normal');
+              doc.setFontSize(7);
+              doc.setTextColor(...GRAY);
+              doc.text(
+                foto.legenda || `Foto ${fi + 1}`,
+                px + photoW / 2,
+                py + photoH + 4,
+                { align: 'center' }
+              );
             }
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(7);
-            doc.setTextColor(...GRAY);
-            doc.text(
-              foto.legenda || `Foto ${fi + 1}`,
-              px + photoW / 2,
-              py + photoH + 4,
-              { align: 'center' }
-            );
-
-            if (posInPage === PHOTOS_PER_PAGE - 1 || fi === amb.fotos.length - 1) {
-              const rowsUsed = row + 1;
-              ly = ly + rowsUsed * cellH + 2;
-            }
+            ly += cellH;
           }
-        }
-         else {
+        } else {
           doc.setFont('helvetica', 'italic');
           doc.setFontSize(8);
           doc.setTextColor(...GRAY);
