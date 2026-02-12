@@ -24,6 +24,18 @@ export interface Lindeiro {
   ambientes: Ambiente[];
 }
 
+export interface CroquiImage {
+  id: string;
+  url: string;
+  legenda: string;
+}
+
+export interface Documentacao {
+  id: string;
+  nome: string;
+  imagens: string[];
+}
+
 export interface DadosCapa {
   empreendimento: string;
   localObra: string;
@@ -52,11 +64,16 @@ export interface Laudo {
   dadosCapa: DadosCapa;
   textos: TextosSecoes;
   lindeiros: Lindeiro[];
+  croquiImages: CroquiImage[];
+  artImages: string[];
+  documentacoes: Documentacao[];
+  conclusao: string;
+  obra: string;
   criadoEm: string;
   atualizadoEm: string;
 }
 
-export type SecaoId = 
+export type SecaoId =
   | 'capa'
   | 'indice'
   | 'introducao'
@@ -65,7 +82,11 @@ export type SecaoId =
   | 'finalidade'
   | 'responsabilidades'
   | 'classificacao'
-  | 'lindeiros';
+  | 'lindeiros'
+  | 'croqui'
+  | 'art'
+  | 'documentacoes'
+  | 'conclusao';
 
 export interface SecaoNavegavel {
   id: SecaoId;
