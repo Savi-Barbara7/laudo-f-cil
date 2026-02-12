@@ -61,6 +61,14 @@ export default {
         "editor-bg": "hsl(var(--editor-bg))",
         "toolbar-bg": "hsl(var(--toolbar-bg))",
         "toolbar-border": "hsl(var(--toolbar-border))",
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
