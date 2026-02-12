@@ -1,101 +1,107 @@
 
+# Plano de Implementacao - Novas Secoes e Organizacao por Obra
 
-# LVL PRO — Editor de Laudos Técnicos de Vistoria Cautelar
+## Resumo
 
-## Visão Geral
-Aplicação web profissional para criação e edição de Laudos Técnicos de Vistoria Cautelar de Lindeiros (LVL), com experiência visual tipo Adobe Acrobat — WYSIWYG, índice navegável, organização automática de fotos e exportação PDF fiel ao modelo fornecido.
-
----
-
-## Fase 1: Editor Completo (Frontend — Dados Locais)
-
-### 1. Tela Inicial — Dashboard Simples
-- Lista de laudos salvos localmente (localStorage)
-- Botão "Criar Novo Laudo" a partir do template padrão
-- Status do laudo (rascunho/finalizado)
-- Importar/exportar projeto como JSON (compatível com o formato Streamlit existente)
-
-### 2. Editor de Laudo — Layout Principal
-- **Área central**: Visualização WYSIWYG das páginas em formato A4, com zoom in/out
-- **Sidebar esquerda**: Índice lateral navegável com marcadores (Capa, Índice, I. Informações Gerais, II. Vistoria do Canteiro, III. Vistoria do Entorno, IV. Croqui, V. ART, VI. Conclusão)
-- **Barra superior**: Ferramentas de edição (fonte, tamanho, negrito, itálico, sublinhado, alinhamento, copiar formatação)
-
-### 3. Páginas do Laudo — Estrutura Fiel ao Modelo
-
-#### Capa
-- Logo Competence no topo
-- Foto aérea/imagem do empreendimento (editável)
-- Título "LAUDO TÉCNICO CAUTELAR DE VISTORIA DE LINDEIROS"
-- Volume (ex: "Volume 1 de 8")
-- Campos editáveis: Empreendimento, Local da obra, Solicitante, CNPJ
-- Texto legal pré-preenchido
-- QR Code e informações de contato no rodapé
-
-#### Índice
-- Gerado automaticamente com base nas seções
-- Números de página atualizados automaticamente
-- Navegação clicável para cada seção
-
-#### Informações Gerais (Seções 1-6)
-- Todas as seções pré-preenchidas com os textos padrão do modelo:
-  1. Introdução
-  2. Objeto
-  3. Objetivo
-  4. Finalidade
-  5. Responsabilidades e Procedimentos
-  6. Conceito de Estados de Conservação
-- Texto totalmente editável com editor rico (negrito, itálico, listas, parágrafos justificados)
-- Fonte Arial 12 como padrão, texto justificado
-
-#### Vistoria dos Lindeiros
-- Adicionar/remover lindeiros
-- Para cada lindeiro: tipo de imóvel, uso, endereço, data, acompanhante, telefone, descrição
-- Adicionar/remover ambientes por lindeiro
-- Upload de fotos (múltiplas) por ambiente
-- Layout automático: 2 fotos por linha com legendas editáveis (ex: "Canteiro de Obras - Fig:0001")
-- Tabela de classificação do estado de conservação (Bom, Regular, Ruim, Novo)
-
-### 4. Cabeçalho e Rodapé (em todas as páginas internas)
-- **Cabeçalho**: Logo Competence à esquerda, serviços à direita (Consultoria e Perícias, Avaliações de Imóveis, etc.)
-- **Rodapé**: QR code, numeração "Página X de Y"
-
-### 5. Funcionalidades do Editor
-- Quebra automática de página quando o conteúdo excede o espaço
-- Inserção manual de quebra de página
-- Zoom in/out na visualização
-- Salvamento automático no localStorage
-- Desfazer/refazer (Ctrl+Z / Ctrl+Y)
-
-### 6. Exportação PDF
-- Geração de PDF com layout idêntico ao modelo fornecido
-- Numeração de páginas correta
-- Índice com páginas corretas
-- Fotos organizadas em grid 2x1 com legendas
-- Download direto do navegador
-
-### 7. Gestão de Fotos
-- Upload de múltiplas fotos por arrastar/soltar
-- Legendas editáveis individualmente
-- Reordenar fotos por drag & drop
-- Apagar fotos individuais ou todas de um ambiente
-- Numeração automática (Fig:0001, Fig:0002...)
+Adicionar 4 novas secoes ao laudo (Croqui, ART, Documentacoes, Conclusao), criar componentes de edicao para cada uma, atualizar a geracao de PDF, e reorganizar o Dashboard para agrupar laudos por obra.
 
 ---
 
-## Fase 2: Backend com Lovable Cloud (após validação do editor)
-- Autenticação de usuários (login/cadastro)
-- Salvamento de laudos no banco de dados
-- Storage para fotos (sem armazenar no banco)
-- Histórico e versionamento de laudos
-- Compartilhamento de laudos entre usuários
+## 1. Atualizar Tipos (src/types/laudo.ts)
+
+- Adicionar novos campos ao tipo `Laudo`:
+  - `croquiImages: CroquiImage[]` - array de imagens de croqui com legendas
+  - `artImages: string[]` - array de URLs de imagens/PDFs da ART
+  - `documentacoes: Documentacao[]` - lista de fichas com nome, descricao e imagens anexadas
+  - `conclusao: string` - texto livre da conclusao
+  - `obra: string` - nome da obra para agrupamento no Dashboard
+- Adicionar novos valores ao tipo `SecaoId`: `'croqui' | 'art' | 'documentacoes' | 'conclusao'`
+- Criar interfaces: `CroquiImage` (id, url, legenda) e `Documentacao` (id, nome, imagens)
+
+## 2. Atualizar Secoes Navegaveis (src/data/defaultTexts.ts)
+
+- Adicionar ao array `SECOES_NAVEGAVEIS`:
+  - `{ id: 'croqui', label: 'VIII. Croqui' }`
+  - `{ id: 'art', label: 'IX. ART' }`
+  - `{ id: 'documentacoes', label: 'X. Documentacoes' }`
+  - `{ id: 'conclusao', label: 'XI. Conclusao' }`
+- Adicionar texto padrao para conclusao em `TEXTOS_PADRAO` ou no tipo Laudo
+
+## 3. Criar Componentes de Edicao
+
+### 3a. CroquiSection (src/components/editor/CroquiSection.tsx)
+- Permite upload de imagens de croqui (mapa aereo com marcacoes)
+- Cada imagem tem um campo de legenda editavel
+- Botao para adicionar/remover imagens
+- Visualizacao das imagens em tamanho grande dentro da pagina A4
+
+### 3b. ARTSection (src/components/editor/ARTSection.tsx)
+- Upload de imagens ou PDFs (convertidos em imagem) da ART
+- Visualizacao das imagens anexadas
+- Botao para adicionar/remover
+
+### 3c. DocumentacoesSection (src/components/editor/DocumentacoesSection.tsx)
+- Campo de texto para descricao/titulo de cada documentacao (ex: "Ficha de Vistoria Tecnica - PAVILHAO COMERCIAL - Avenida Victor Kunz, 2740")
+- Upload de imagens das fichas de vistoria
+- Botao para adicionar/remover documentacoes
+- Secao opcional (pode ficar vazia quando nao ha fichas)
+
+### 3d. ConclusaoSection (src/components/editor/ConclusaoSection.tsx)
+- Textarea grande e redimensionavel para o texto da conclusao
+- Semelhante ao SectionPage mas dedicado
+
+## 4. Atualizar LaudoEditor (src/pages/LaudoEditor.tsx)
+
+- Importar e renderizar os 4 novos componentes condicionalmente com base em `secaoAtiva`
+- Adicionar handlers de update para cada nova secao
+
+## 5. Atualizar EditorSidebar (src/components/editor/EditorSidebar.tsx)
+
+- Adicionar icones para as novas secoes (Map para Croqui, FileCheck para ART, FolderOpen para Documentacoes, CheckCircle para Conclusao)
+
+## 6. Atualizar useLaudoStore (src/hooks/useLaudoStore.ts)
+
+- Inicializar os novos campos ao criar um laudo: `croquiImages: []`, `artImages: []`, `documentacoes: []`, `conclusao: ''`, `obra: ''`
+
+## 7. Atualizar Geracao de PDF (src/lib/pdfGenerator.ts)
+
+- Apos a secao de Lindeiros, adicionar:
+  - **Croqui**: nova pagina com titulo "Croqui de Localizacao", renderizar cada imagem de croqui em pagina cheia com legenda
+  - **ART**: nova pagina com titulo "ART", renderizar imagens da ART
+  - **Documentacoes**: pagina com lista de documentacoes e, em seguida, as imagens das fichas
+  - **Conclusao**: pagina com titulo "Conclusao" e texto com quebra automatica de pagina
+- Atualizar o indice para incluir as 4 novas secoes com numeros de pagina
+
+## 8. Reorganizar Dashboard por Obra (src/pages/Dashboard.tsx)
+
+- Adicionar campo "Obra" ao criar um laudo (dialog ou input)
+- Agrupar laudos por `obra` no Dashboard
+- Exibir como acordeao ou secoes colapsaveis: nome da obra como cabecalho, volumes/laudos como cards dentro
+- Laudos sem obra definida ficam em grupo "Sem obra"
+- Cada card mostra o volume e titulo do laudo
 
 ---
 
-## Design e Estética
-- Visual profissional e limpo, inspirado no Adobe Acrobat
-- Fundo cinza neutro com páginas brancas centralizadas
-- Sidebar escura com índice navegável
-- Tipografia Arial como padrão nos documentos
-- Interface focada em produtividade para documentos extensos (+300 páginas)
-- Cores da marca Competence (azul escuro) nos elementos de interface
+## Detalhes Tecnicos
 
+### Arquivos a criar:
+- `src/components/editor/CroquiSection.tsx`
+- `src/components/editor/ARTSection.tsx`
+- `src/components/editor/DocumentacoesSection.tsx`
+- `src/components/editor/ConclusaoSection.tsx`
+
+### Arquivos a modificar:
+- `src/types/laudo.ts` - novos tipos e SecaoId
+- `src/data/defaultTexts.ts` - novas secoes navegaveis
+- `src/hooks/useLaudoStore.ts` - inicializacao dos novos campos
+- `src/pages/LaudoEditor.tsx` - renderizacao das novas secoes
+- `src/components/editor/EditorSidebar.tsx` - icones das novas secoes
+- `src/lib/pdfGenerator.ts` - renderizacao PDF das novas secoes + indice atualizado
+- `src/pages/Dashboard.tsx` - agrupamento por obra
+
+### Upload de imagens:
+- Reutilizar `uploadImage` de `src/lib/storageHelper.ts` para Croqui, ART e Documentacoes
+- Armazenar URLs no estado do laudo (mesmo padrao dos ambientes/fotos dos lindeiros)
+
+### Compatibilidade:
+- Laudos existentes sem os novos campos receberao valores padrao via fallback no codigo (`laudo.croquiImages || []`)
