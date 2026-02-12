@@ -1,107 +1,86 @@
 
-# Plano de Implementacao - Novas Secoes e Organizacao por Obra
+
+# Plano: Transformacao Visual SaaS + Dashboard Profissional
 
 ## Resumo
 
-Adicionar 4 novas secoes ao laudo (Croqui, ART, Documentacoes, Conclusao), criar componentes de edicao para cada uma, atualizar a geracao de PDF, e reorganizar o Dashboard para agrupar laudos por obra.
+Redesign completo da identidade visual do sistema para parecer um software pago profissional, incluindo logo, paleta de cores refinada, tipografia moderna e um dashboard com metricas e filtros.
 
 ---
 
-## 1. Atualizar Tipos (src/types/laudo.ts)
+## 1. Identidade Visual - Paleta e Variaveis CSS
 
-- Adicionar novos campos ao tipo `Laudo`:
-  - `croquiImages: CroquiImage[]` - array de imagens de croqui com legendas
-  - `artImages: string[]` - array de URLs de imagens/PDFs da ART
-  - `documentacoes: Documentacao[]` - lista de fichas com nome, descricao e imagens anexadas
-  - `conclusao: string` - texto livre da conclusao
-  - `obra: string` - nome da obra para agrupamento no Dashboard
-- Adicionar novos valores ao tipo `SecaoId`: `'croqui' | 'art' | 'documentacoes' | 'conclusao'`
-- Criar interfaces: `CroquiImage` (id, url, legenda) e `Documentacao` (id, nome, imagens)
+Atualizar `src/index.css` com paleta profissional refinada:
+- Azul escuro primario mais sofisticado (hsl 215, 50%, 18%)
+- Cinza claro de fundo mais limpo
+- Bordas mais sutis
+- Sombras mais suaves nos cards
+- Transicoes suaves em hover states
+- Sidebar com tom mais escuro e elegante
 
-## 2. Atualizar Secoes Navegaveis (src/data/defaultTexts.ts)
+## 2. Logo e Header do Sistema
 
-- Adicionar ao array `SECOES_NAVEGAVEIS`:
-  - `{ id: 'croqui', label: 'VIII. Croqui' }`
-  - `{ id: 'art', label: 'IX. ART' }`
-  - `{ id: 'documentacoes', label: 'X. Documentacoes' }`
-  - `{ id: 'conclusao', label: 'XI. Conclusao' }`
-- Adicionar texto padrao para conclusao em `TEXTOS_PADRAO` ou no tipo Laudo
+Atualizar o header em `src/pages/Dashboard.tsx` e `src/components/editor/EditorToolbar.tsx`:
+- Logo textual estilizado "LVL PRO" com icone de escudo/documento ao lado
+- Subtitulo menor e mais discreto
+- Header com fundo branco, sombra sutil e borda inferior refinada
+- Espacamento mais generoso
 
-## 3. Criar Componentes de Edicao
+## 3. Dashboard com Metricas (src/pages/Dashboard.tsx)
 
-### 3a. CroquiSection (src/components/editor/CroquiSection.tsx)
-- Permite upload de imagens de croqui (mapa aereo com marcacoes)
-- Cada imagem tem um campo de legenda editavel
-- Botao para adicionar/remover imagens
-- Visualizacao das imagens em tamanho grande dentro da pagina A4
+Redesign completo do Dashboard:
+- **Cards de metricas no topo:**
+  - Total de laudos criados no mes (com icone FileText)
+  - Total finalizados (com icone CheckCircle)
+  - Total em andamento/rascunho (com icone Clock)
+  - Total de lindeiros registrados (com icone MapPin)
+- **Filtro por periodo:** Select com opcoes (Este mes, Ultimo mes, Ultimos 3 meses, Este ano, Todos)
+- **Lista "Ultimos Laudos":** Tabela limpa com os 5 laudos mais recentes, mostrando titulo, obra, status, data
+- **Botao "Criar Novo Laudo"** em destaque com icone e cor primaria
+- **Secao de obras agrupadas** abaixo das metricas (mantendo o agrupamento existente mas com visual melhorado)
 
-### 3b. ARTSection (src/components/editor/ARTSection.tsx)
-- Upload de imagens ou PDFs (convertidos em imagem) da ART
-- Visualizacao das imagens anexadas
-- Botao para adicionar/remover
+## 4. Cards e Componentes Padronizados
 
-### 3c. DocumentacoesSection (src/components/editor/DocumentacoesSection.tsx)
-- Campo de texto para descricao/titulo de cada documentacao (ex: "Ficha de Vistoria Tecnica - PAVILHAO COMERCIAL - Avenida Victor Kunz, 2740")
-- Upload de imagens das fichas de vistoria
-- Botao para adicionar/remover documentacoes
-- Secao opcional (pode ficar vazia quando nao ha fichas)
+- Cards com border-radius maior (8px), sombra sutil, hover com elevacao
+- Badges de status com cores consistentes (verde para finalizado, amarelo para rascunho)
+- Botoes com padding mais generoso, cantos arredondados, transicoes suaves
+- Espacamento vertical entre secoes mais generoso (gap-6 em vez de gap-3)
 
-### 3d. ConclusaoSection (src/components/editor/ConclusaoSection.tsx)
-- Textarea grande e redimensionavel para o texto da conclusao
-- Semelhante ao SectionPage mas dedicado
+## 5. Editor - Melhorias Visuais
 
-## 4. Atualizar LaudoEditor (src/pages/LaudoEditor.tsx)
+Atualizar `src/pages/LaudoEditor.tsx` e `src/components/editor/EditorToolbar.tsx`:
+- Toolbar mais limpa com fundo branco e sombra
+- Sidebar com hover states mais suaves
+- Area de edicao com fundo mais limpo
+- Controle de zoom mais discreto
 
-- Importar e renderizar os 4 novos componentes condicionalmente com base em `secaoAtiva`
-- Adicionar handlers de update para cada nova secao
+## 6. Tipografia
 
-## 5. Atualizar EditorSidebar (src/components/editor/EditorSidebar.tsx)
-
-- Adicionar icones para as novas secoes (Map para Croqui, FileCheck para ART, FolderOpen para Documentacoes, CheckCircle para Conclusao)
-
-## 6. Atualizar useLaudoStore (src/hooks/useLaudoStore.ts)
-
-- Inicializar os novos campos ao criar um laudo: `croquiImages: []`, `artImages: []`, `documentacoes: []`, `conclusao: ''`, `obra: ''`
-
-## 7. Atualizar Geracao de PDF (src/lib/pdfGenerator.ts)
-
-- Apos a secao de Lindeiros, adicionar:
-  - **Croqui**: nova pagina com titulo "Croqui de Localizacao", renderizar cada imagem de croqui em pagina cheia com legenda
-  - **ART**: nova pagina com titulo "ART", renderizar imagens da ART
-  - **Documentacoes**: pagina com lista de documentacoes e, em seguida, as imagens das fichas
-  - **Conclusao**: pagina com titulo "Conclusao" e texto com quebra automatica de pagina
-- Atualizar o indice para incluir as 4 novas secoes com numeros de pagina
-
-## 8. Reorganizar Dashboard por Obra (src/pages/Dashboard.tsx)
-
-- Adicionar campo "Obra" ao criar um laudo (dialog ou input)
-- Agrupar laudos por `obra` no Dashboard
-- Exibir como acordeao ou secoes colapsaveis: nome da obra como cabecalho, volumes/laudos como cards dentro
-- Laudos sem obra definida ficam em grupo "Sem obra"
-- Cada card mostra o volume e titulo do laudo
+- Usar Inter ou manter system font stack mas com pesos mais consistentes
+- Titulos em font-weight 700, subtitulos em 600, corpo em 400
+- Line-height mais confortavel (1.6)
+- Tamanhos de fonte mais hierarquicos
 
 ---
 
 ## Detalhes Tecnicos
 
-### Arquivos a criar:
-- `src/components/editor/CroquiSection.tsx`
-- `src/components/editor/ARTSection.tsx`
-- `src/components/editor/DocumentacoesSection.tsx`
-- `src/components/editor/ConclusaoSection.tsx`
-
 ### Arquivos a modificar:
-- `src/types/laudo.ts` - novos tipos e SecaoId
-- `src/data/defaultTexts.ts` - novas secoes navegaveis
-- `src/hooks/useLaudoStore.ts` - inicializacao dos novos campos
-- `src/pages/LaudoEditor.tsx` - renderizacao das novas secoes
-- `src/components/editor/EditorSidebar.tsx` - icones das novas secoes
-- `src/lib/pdfGenerator.ts` - renderizacao PDF das novas secoes + indice atualizado
-- `src/pages/Dashboard.tsx` - agrupamento por obra
+- `src/index.css` - Variaveis CSS, estilos globais, tipografia
+- `src/pages/Dashboard.tsx` - Redesign completo com metricas, filtros e lista recente
+- `src/pages/LaudoEditor.tsx` - Ajustes visuais no editor
+- `src/components/editor/EditorToolbar.tsx` - Header/toolbar mais profissional
+- `src/components/editor/EditorSidebar.tsx` - Sidebar mais elegante
+- `tailwind.config.ts` - Ajustes de tema se necessario
 
-### Upload de imagens:
-- Reutilizar `uploadImage` de `src/lib/storageHelper.ts` para Croqui, ART e Documentacoes
-- Armazenar URLs no estado do laudo (mesmo padrao dos ambientes/fotos dos lindeiros)
+### Metricas do Dashboard:
+- Calculadas a partir dos dados existentes em localStorage (array de laudos)
+- Filtro por periodo filtra `criadoEm` dos laudos
+- Nao requer mudancas no backend ou banco de dados
+- Usa os mesmos dados do `useLaudoStore`
 
 ### Compatibilidade:
-- Laudos existentes sem os novos campos receberao valores padrao via fallback no codigo (`laudo.croquiImages || []`)
+- Nenhuma mudanca estrutural nos dados
+- Apenas visual e layout
+- Funcionalidades existentes permanecem intactas
+
