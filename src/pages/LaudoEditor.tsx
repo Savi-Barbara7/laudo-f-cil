@@ -11,6 +11,7 @@ import { CroquiSection } from '@/components/editor/CroquiSection';
 import { ARTSection } from '@/components/editor/ARTSection';
 import { DocumentacoesSection } from '@/components/editor/DocumentacoesSection';
 import { ConclusaoSection } from '@/components/editor/ConclusaoSection';
+import { RichTextEditor } from '@/components/editor/RichTextEditor';
 import { gerarPDF } from '@/lib/pdfGenerator';
 import type { SecaoId, Laudo } from '@/types/laudo';
 import { ZoomIn, ZoomOut } from 'lucide-react';
@@ -77,6 +78,7 @@ const LaudoEditor = () => {
             </Button>
           </div>
 
+          {/* A4 Preview (zoomed) */}
           <div className="mx-auto" style={{ transform: `scale(${zoom})`, transformOrigin: 'top center', width: '210mm' }}>
             {(secaoAtiva === 'capa' || secaoAtiva === 'indice') && (
               <div id="secao-capa" className="mb-8">
@@ -116,28 +118,88 @@ const LaudoEditor = () => {
 
             {secaoAtiva === 'croqui' && (
               <div id="secao-croqui" className="mb-8">
-                <CroquiSection images={laudo.croquiImages || []} onUpdate={(croquiImages) => handleUpdate({ croquiImages })} />
+                <CroquiSection
+                  images={laudo.croquiImages || []}
+                  onUpdate={(croquiImages) => handleUpdate({ croquiImages })}
+                />
               </div>
             )}
 
             {secaoAtiva === 'art' && (
               <div id="secao-art" className="mb-8">
-                <ARTSection images={laudo.artImages || []} onUpdate={(artImages) => handleUpdate({ artImages })} />
+                <ARTSection
+                  images={laudo.artImages || []}
+                  onUpdate={(artImages) => handleUpdate({ artImages })}
+                />
               </div>
             )}
 
             {secaoAtiva === 'documentacoes' && (
               <div id="secao-documentacoes" className="mb-8">
-                <DocumentacoesSection documentacoes={laudo.documentacoes || []} onUpdate={(documentacoes) => handleUpdate({ documentacoes })} />
+                <DocumentacoesSection
+                  documentacoes={laudo.documentacoes || []}
+                  onUpdate={(documentacoes) => handleUpdate({ documentacoes })}
+                />
               </div>
             )}
 
             {secaoAtiva === 'conclusao' && (
-              <div id="secao-conclusao" className="mb-8">
-                <ConclusaoSection conclusao={laudo.conclusao || ''} onUpdate={(conclusao) => handleUpdate({ conclusao })} />
+              <div id="secao-conclusao" className="a4-page mb-8">
+                <h2 className="mb-6 text-center text-lg font-bold text-primary" style={{ fontFamily: 'Arial, sans-serif' }}>CONCLUSÃO</h2>
+                <p className="text-xs text-muted-foreground">Descreva o conteúdo de cada volume e considerações finais do laudo.</p>
               </div>
             )}
           </div>
+
+          {/* Rich Text Editor (outside zoom for usability) */}
+          {(secaoAtiva === 'croqui' || secaoAtiva === 'art' || secaoAtiva === 'documentacoes' || secaoAtiva === 'conclusao') && (
+            <div className="mx-auto mt-6 max-w-4xl">
+              {secaoAtiva === 'croqui' && (
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Observações do Croqui</h3>
+                  <RichTextEditor
+                    content={laudo.croquiRichText || ''}
+                    onUpdate={(croquiRichText) => handleUpdate({ croquiRichText })}
+                    placeholder="Adicione observações sobre o croqui..."
+                    minHeight="200px"
+                  />
+                </div>
+              )}
+              {secaoAtiva === 'art' && (
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Observações da ART</h3>
+                  <RichTextEditor
+                    content={laudo.artRichText || ''}
+                    onUpdate={(artRichText) => handleUpdate({ artRichText })}
+                    placeholder="Adicione observações sobre a ART..."
+                    minHeight="200px"
+                  />
+                </div>
+              )}
+              {secaoAtiva === 'documentacoes' && (
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Observações das Documentações</h3>
+                  <RichTextEditor
+                    content={laudo.documentacoesRichText || ''}
+                    onUpdate={(documentacoesRichText) => handleUpdate({ documentacoesRichText })}
+                    placeholder="Adicione observações sobre as documentações..."
+                    minHeight="200px"
+                  />
+                </div>
+              )}
+              {secaoAtiva === 'conclusao' && (
+                <div>
+                  <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Editor da Conclusão</h3>
+                  <RichTextEditor
+                    content={laudo.conclusao || ''}
+                    onUpdate={(conclusao) => handleUpdate({ conclusao })}
+                    placeholder="Ex: Volume 01 contempla os lindeiros de 1 a 10..."
+                    minHeight="400px"
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </main>
       </div>
     </div>

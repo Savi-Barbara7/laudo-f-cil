@@ -93,7 +93,6 @@ export function CroquiSection({ images, onUpdate }: CroquiSectionProps) {
         </Button>
       </div>
 
-      {/* Lightbox */}
       {lightbox && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setLightbox(null)}>
           <img src={lightbox} alt="Croqui ampliado" className="max-h-[90vh] max-w-[90vw] rounded-lg" />

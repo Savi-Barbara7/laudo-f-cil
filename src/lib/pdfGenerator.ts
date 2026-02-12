@@ -76,6 +76,225 @@ function stripHtmlTags(text: string): string {
     .trim();
 }
 
+interface RichNode {
+  type: 'text' | 'heading' | 'paragraph' | 'list-item' | 'image' | 'table' | 'hr';
+  text?: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  level?: number; // heading level
+  align?: string;
+  listType?: 'ul' | 'ol';
+  listIndex?: number;
+  src?: string; // image src
+  rows?: string[][]; // table rows
+}
+
+function parseRichHtml(html: string): RichNode[] {
+  if (!html || html === '<p></p>') return [];
+  const nodes: RichNode[] = [];
+  const div = document.createElement('div');
+  div.innerHTML = html;
+
+  function walkChildren(el: Element, listType?: 'ul' | 'ol', listCounter?: { i: number }) {
+    for (const child of Array.from(el.childNodes)) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        const t = child.textContent?.trim();
+        if (t) nodes.push({ type: 'text', text: t });
+        continue;
+      }
+      if (child.nodeType !== Node.ELEMENT_NODE) continue;
+      const tag = (child as Element).tagName.toLowerCase();
+      const elem = child as HTMLElement;
+
+      if (tag === 'h1' || tag === 'h2') {
+        nodes.push({ type: 'heading', text: elem.textContent || '', level: tag === 'h1' ? 1 : 2, align: elem.style.textAlign || 'left' });
+      } else if (tag === 'p') {
+        const text = elem.innerHTML;
+        // Check for inline images
+        if (elem.querySelector('img')) {
+          for (const c of Array.from(elem.childNodes)) {
+            if (c.nodeType === Node.ELEMENT_NODE && (c as Element).tagName === 'IMG') {
+              nodes.push({ type: 'image', src: (c as HTMLImageElement).src });
+            } else if (c.textContent?.trim()) {
+              nodes.push({ type: 'paragraph', text: c.textContent?.trim() || '', align: elem.style.textAlign || '', bold: !!elem.querySelector('strong'), italic: !!elem.querySelector('em'), underline: !!elem.querySelector('u') });
+            }
+          }
+        } else {
+          nodes.push({ type: 'paragraph', text: extractStyledText(elem), align: elem.style.textAlign || '', bold: hasTag(elem, 'strong'), italic: hasTag(elem, 'em'), underline: hasTag(elem, 'u') });
+        }
+      } else if (tag === 'ul' || tag === 'ol') {
+        const counter = { i: 0 };
+        walkChildren(elem, tag as 'ul' | 'ol', counter);
+      } else if (tag === 'li') {
+        if (listCounter) listCounter.i++;
+        nodes.push({ type: 'list-item', text: elem.textContent || '', listType: listType || 'ul', listIndex: listCounter?.i || 1 });
+      } else if (tag === 'img') {
+        nodes.push({ type: 'image', src: (elem as HTMLImageElement).src });
+      } else if (tag === 'table') {
+        const rows: string[][] = [];
+        elem.querySelectorAll('tr').forEach(tr => {
+          const cells: string[] = [];
+          tr.querySelectorAll('td, th').forEach(td => cells.push(td.textContent || ''));
+          rows.push(cells);
+        });
+        nodes.push({ type: 'table', rows });
+      } else if (tag === 'hr') {
+        nodes.push({ type: 'hr' });
+      } else {
+        walkChildren(elem, listType, listCounter);
+      }
+    }
+  }
+
+  function extractStyledText(el: HTMLElement): string {
+    return el.textContent || '';
+  }
+
+  function hasTag(el: HTMLElement, tag: string): boolean {
+    return !!el.querySelector(tag) || el.closest(tag) !== null;
+  }
+
+  walkChildren(div);
+  return nodes;
+}
+
+function writeRichContent(
+  doc: jsPDF,
+  html: string,
+  startY: number,
+  pageCounter: { current: number; total: number },
+  getImage: (src: string) => string
+): number {
+  const nodes = parseRichHtml(html);
+  let y = startY;
+
+  const ensureSpace = (needed: number) => {
+    if (y + needed > A4_H - MARGIN_BOTTOM - 10) {
+      doc.addPage();
+      pageCounter.current++;
+      addHeaderFooter(doc, pageCounter.current, pageCounter.total);
+      y = MARGIN_TOP;
+    }
+  };
+
+  for (const node of nodes) {
+    switch (node.type) {
+      case 'heading': {
+        ensureSpace(12);
+        const size = node.level === 1 ? 14 : 12;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(size);
+        doc.setTextColor(...PRIMARY_COLOR);
+        const align = node.align === 'center' ? 'center' : node.align === 'right' ? 'right' : 'left';
+        const xPos = align === 'center' ? A4_W / 2 : align === 'right' ? A4_W - MARGIN_RIGHT : MARGIN_LEFT;
+        doc.text(node.text || '', xPos, y, { align: align as any });
+        y += size === 14 ? 8 : 7;
+        break;
+      }
+      case 'paragraph': {
+        if (!node.text?.trim()) { y += 3; break; }
+        ensureSpace(6);
+        doc.setFont('helvetica', node.bold ? 'bold' : node.italic ? 'italic' : 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(...BLACK);
+        const lines = doc.splitTextToSize(node.text || '', CONTENT_W);
+        for (const line of lines) {
+          ensureSpace(5);
+          const align = node.align === 'center' ? 'center' : node.align === 'right' ? 'right' : 'left';
+          const xPos = align === 'center' ? A4_W / 2 : align === 'right' ? A4_W - MARGIN_RIGHT : MARGIN_LEFT;
+          doc.text(line, xPos, y, { align: align as any });
+          y += 5;
+        }
+        y += 1;
+        break;
+      }
+      case 'list-item': {
+        ensureSpace(6);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(...BLACK);
+        const prefix = node.listType === 'ol' ? `${node.listIndex}. ` : '• ';
+        const itemLines = doc.splitTextToSize(`${prefix}${node.text || ''}`, CONTENT_W - 10);
+        for (const il of itemLines) {
+          ensureSpace(5);
+          doc.text(il, MARGIN_LEFT + 5, y);
+          y += 5;
+        }
+        break;
+      }
+      case 'image': {
+        if (node.src) {
+          ensureSpace(80);
+          try {
+            const imgData = getImage(node.src);
+            doc.addImage(imgData, 'JPEG', MARGIN_LEFT, y, CONTENT_W, 70);
+            y += 75;
+          } catch {}
+        }
+        break;
+      }
+      case 'table': {
+        if (node.rows && node.rows.length > 0) {
+          const cols = node.rows[0].length || 1;
+          const colW = CONTENT_W / cols;
+          for (let ri = 0; ri < node.rows.length; ri++) {
+            ensureSpace(8);
+            const row = node.rows[ri];
+            const isHeader = ri === 0;
+            if (isHeader) {
+              doc.setFillColor(240, 240, 240);
+              doc.rect(MARGIN_LEFT, y - 4, CONTENT_W, 7, 'F');
+              doc.setFont('helvetica', 'bold');
+            } else {
+              doc.setFont('helvetica', 'normal');
+            }
+            doc.setFontSize(8);
+            doc.setTextColor(...BLACK);
+            for (let ci = 0; ci < row.length; ci++) {
+              doc.text(row[ci] || '', MARGIN_LEFT + ci * colW + 2, y);
+            }
+            // Draw cell borders
+            for (let ci = 0; ci <= cols; ci++) {
+              doc.setDrawColor(200, 200, 200);
+              doc.line(MARGIN_LEFT + ci * colW, y - 4, MARGIN_LEFT + ci * colW, y + 3);
+            }
+            doc.line(MARGIN_LEFT, y - 4, MARGIN_LEFT + CONTENT_W, y - 4);
+            doc.line(MARGIN_LEFT, y + 3, MARGIN_LEFT + CONTENT_W, y + 3);
+            y += 7;
+          }
+          y += 3;
+        }
+        break;
+      }
+      case 'hr': {
+        // Page break
+        doc.addPage();
+        pageCounter.current++;
+        addHeaderFooter(doc, pageCounter.current, pageCounter.total);
+        y = MARGIN_TOP;
+        break;
+      }
+      case 'text': {
+        if (!node.text?.trim()) break;
+        ensureSpace(5);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(...BLACK);
+        const tLines = doc.splitTextToSize(node.text, CONTENT_W);
+        for (const tl of tLines) {
+          ensureSpace(5);
+          doc.text(tl, MARGIN_LEFT, y);
+          y += 5;
+        }
+        break;
+      }
+    }
+  }
+
+  return y;
+}
+
 interface BoldSegment {
   text: string;
   bold: boolean;
@@ -83,9 +302,6 @@ interface BoldSegment {
 
 function parseBoldSegments(text: string): BoldSegment[] {
   const segments: BoldSegment[] = [];
-  const regex = /<b>(.*?)<\/b>/gi;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
 
   const cleaned = text.replace(/<br\s*\/?>/gi, '\n').replace(/<(?!\/?b\b)[^>]*>/gi, '');
 
@@ -546,7 +762,17 @@ export async function gerarPDF(laudo: Laudo) {
       }
     }
   }
-  const croquiEndPage = croquiImages.length > 0 ? pageCounter.current : 0;
+  // Render croqui rich text if present
+  if (laudo.croquiRichText?.trim()) {
+    if (croquiImages.length === 0) {
+      doc.addPage();
+      pageCounter.current++;
+      addHeaderFooter(doc, pageCounter.current, pageCounter.total);
+    }
+    const crtY = croquiImages.length > 0 ? MARGIN_TOP + 200 : MARGIN_TOP + 10;
+    writeRichContent(doc, laudo.croquiRichText, Math.min(crtY, A4_H - MARGIN_BOTTOM - 30), pageCounter, getImage);
+  }
+  const croquiEndPage = (croquiImages.length > 0 || laudo.croquiRichText?.trim()) ? pageCounter.current : 0;
 
   // ==================== ART PAGES ====================
   const artImgs = laudo.artImages || [];
@@ -568,7 +794,25 @@ export async function gerarPDF(laudo: Laudo) {
       } catch {}
     }
   }
-  const artEndPage = artImgs.length > 0 ? pageCounter.current : 0;
+  // Render ART rich text if present
+  if (laudo.artRichText?.trim()) {
+    if (artImgs.length === 0) {
+      doc.addPage();
+      pageCounter.current++;
+      addHeaderFooter(doc, pageCounter.current, pageCounter.total);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(...PRIMARY_COLOR);
+      doc.text('ART - ANOTAÇÃO DE RESPONSABILIDADE TÉCNICA', MARGIN_LEFT, MARGIN_TOP);
+      writeRichContent(doc, laudo.artRichText, MARGIN_TOP + 10, pageCounter, getImage);
+    } else {
+      doc.addPage();
+      pageCounter.current++;
+      addHeaderFooter(doc, pageCounter.current, pageCounter.total);
+      writeRichContent(doc, laudo.artRichText, MARGIN_TOP, pageCounter, getImage);
+    }
+  }
+  const artEndPage = (artImgs.length > 0 || laudo.artRichText?.trim()) ? pageCounter.current : 0;
 
   // ==================== DOCUMENTAÇÕES PAGES ====================
   const documentacoes = laudo.documentacoes || [];
@@ -610,16 +854,34 @@ export async function gerarPDF(laudo: Laudo) {
       }
     }
   }
-  const docsEndPage = documentacoes.length > 0 ? pageCounter.current : 0;
+  // Render documentações rich text if present
+  if (laudo.documentacoesRichText?.trim()) {
+    doc.addPage();
+    pageCounter.current++;
+    addHeaderFooter(doc, pageCounter.current, pageCounter.total);
+    writeRichContent(doc, laudo.documentacoesRichText, MARGIN_TOP, pageCounter, getImage);
+  }
+  const docsEndPage = (documentacoes.length > 0 || laudo.documentacoesRichText?.trim()) ? pageCounter.current : 0;
 
   // ==================== CONCLUSÃO PAGE ====================
   const conclusaoText = laudo.conclusao || '';
+  const isRichConclusao = conclusaoText.includes('<') && conclusaoText.includes('>');
   const conclusaoStartPage = conclusaoText.trim() ? pageCounter.current + 1 : 0;
   if (conclusaoText.trim()) {
     doc.addPage();
     pageCounter.current++;
     addHeaderFooter(doc, pageCounter.current, pageCounter.total);
-    writeSectionWithPageBreaks(doc, 'XI. CONCLUSÃO', conclusaoText, MARGIN_TOP, pageCounter);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(...PRIMARY_COLOR);
+    doc.text('XI. CONCLUSÃO', MARGIN_LEFT, MARGIN_TOP);
+
+    if (isRichConclusao) {
+      writeRichContent(doc, conclusaoText, MARGIN_TOP + 10, pageCounter, getImage);
+    } else {
+      writeSectionWithPageBreaks(doc, '', conclusaoText, MARGIN_TOP + 10, pageCounter);
+    }
   }
   const conclusaoEndPage = conclusaoText.trim() ? pageCounter.current : 0;
 

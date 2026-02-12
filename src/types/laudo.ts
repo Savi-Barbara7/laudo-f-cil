@@ -71,6 +71,10 @@ export interface Laudo {
   obra: string;
   criadoEm: string;
   atualizadoEm: string;
+  // Rich text HTML content for sections
+  croquiRichText?: string;
+  artRichText?: string;
+  documentacoesRichText?: string;
 }
 
 export type SecaoId =
