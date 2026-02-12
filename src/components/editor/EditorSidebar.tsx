@@ -2,12 +2,16 @@ import { SECOES_NAVEGAVEIS } from '@/data/defaultTexts';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import type { SecaoId, Lindeiro } from '@/types/laudo';
-import { FileText, Home, List, BookOpen, MapPin } from 'lucide-react';
+import { FileText, Home, List, BookOpen, MapPin, Map, FileCheck, FolderOpen, CheckCircle } from 'lucide-react';
 
 const iconMap: Record<string, React.ReactNode> = {
   capa: <Home className="h-4 w-4" />,
   indice: <List className="h-4 w-4" />,
   lindeiros: <MapPin className="h-4 w-4" />,
+  croqui: <Map className="h-4 w-4" />,
+  art: <FileCheck className="h-4 w-4" />,
+  documentacoes: <FolderOpen className="h-4 w-4" />,
+  conclusao: <CheckCircle className="h-4 w-4" />,
 };
 
 interface EditorSidebarProps {

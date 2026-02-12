@@ -59,6 +59,11 @@ export function useLaudoStore() {
       dadosCapa: { ...DADOS_CAPA_PADRAO },
       textos: { ...TEXTOS_PADRAO },
       lindeiros: [],
+      croquiImages: [],
+      artImages: [],
+      documentacoes: [],
+      conclusao: '',
+      obra: '',
       criadoEm: now,
       atualizadoEm: now,
     };

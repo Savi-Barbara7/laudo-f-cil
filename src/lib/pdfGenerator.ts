@@ -205,6 +205,20 @@ export async function gerarPDF(laudo: Laudo) {
       }
     }
   }
+  // Croqui images
+  for (const ci of (laudo.croquiImages || [])) {
+    if (ci.url && ci.url.startsWith('http')) urls.push(ci.url);
+  }
+  // ART images
+  for (const ai of (laudo.artImages || [])) {
+    if (ai && ai.startsWith('http')) urls.push(ai);
+  }
+  // Documentações images
+  for (const doc of (laudo.documentacoes || [])) {
+    for (const img of doc.imagens) {
+      if (img && img.startsWith('http')) urls.push(img);
+    }
+  }
   await Promise.all(urls.map(async (url) => {
     const b64 = await fetchImageAsBase64(url);
     if (b64) imageCache.set(url, b64);
@@ -503,6 +517,112 @@ export async function gerarPDF(laudo: Laudo) {
     }
   }
 
+  // ==================== CROQUI PAGES ====================
+  const croquiImages = laudo.croquiImages || [];
+  const croquiStartPage = croquiImages.length > 0 ? pageCounter.current + 1 : 0;
+  if (croquiImages.length > 0) {
+    for (const ci of croquiImages) {
+      doc.addPage();
+      pageCounter.current++;
+      addHeaderFooter(doc, pageCounter.current, pageCounter.total);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(...PRIMARY_COLOR);
+      doc.text('CROQUI DE LOCALIZAÇÃO', MARGIN_LEFT, MARGIN_TOP);
+
+      if (ci.url) {
+        try {
+          const imgData = getImage(ci.url);
+          doc.addImage(imgData, 'JPEG', MARGIN_LEFT, MARGIN_TOP + 8, CONTENT_W, 180);
+        } catch {}
+      }
+
+      if (ci.legenda) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(...GRAY);
+        doc.text(ci.legenda, A4_W / 2, MARGIN_TOP + 195, { align: 'center', maxWidth: CONTENT_W });
+      }
+    }
+  }
+  const croquiEndPage = croquiImages.length > 0 ? pageCounter.current : 0;
+
+  // ==================== ART PAGES ====================
+  const artImgs = laudo.artImages || [];
+  const artStartPage = artImgs.length > 0 ? pageCounter.current + 1 : 0;
+  if (artImgs.length > 0) {
+    for (let aidx = 0; aidx < artImgs.length; aidx++) {
+      doc.addPage();
+      pageCounter.current++;
+      addHeaderFooter(doc, pageCounter.current, pageCounter.total);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(...PRIMARY_COLOR);
+      doc.text('ART - ANOTAÇÃO DE RESPONSABILIDADE TÉCNICA', MARGIN_LEFT, MARGIN_TOP);
+
+      try {
+        const imgData = getImage(artImgs[aidx]);
+        doc.addImage(imgData, 'JPEG', MARGIN_LEFT, MARGIN_TOP + 8, CONTENT_W, 200);
+      } catch {}
+    }
+  }
+  const artEndPage = artImgs.length > 0 ? pageCounter.current : 0;
+
+  // ==================== DOCUMENTAÇÕES PAGES ====================
+  const documentacoes = laudo.documentacoes || [];
+  const docsStartPage = documentacoes.length > 0 ? pageCounter.current + 1 : 0;
+  if (documentacoes.length > 0) {
+    doc.addPage();
+    pageCounter.current++;
+    addHeaderFooter(doc, pageCounter.current, pageCounter.total);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(...PRIMARY_COLOR);
+    doc.text('DOCUMENTAÇÕES', MARGIN_LEFT, MARGIN_TOP);
+
+    let docsY = MARGIN_TOP + 12;
+    for (const docItem of documentacoes) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(...BLACK);
+      doc.text(`• ${docItem.nome || 'Documentação sem título'}`, MARGIN_LEFT + 5, docsY);
+      docsY += 7;
+    }
+
+    for (const docItem of documentacoes) {
+      for (const imgUrl of docItem.imagens) {
+        doc.addPage();
+        pageCounter.current++;
+        addHeaderFooter(doc, pageCounter.current, pageCounter.total);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(...PRIMARY_COLOR);
+        doc.text(docItem.nome || 'Ficha de Vistoria', MARGIN_LEFT, MARGIN_TOP);
+
+        try {
+          const imgData = getImage(imgUrl);
+          doc.addImage(imgData, 'JPEG', MARGIN_LEFT, MARGIN_TOP + 8, CONTENT_W, 200);
+        } catch {}
+      }
+    }
+  }
+  const docsEndPage = documentacoes.length > 0 ? pageCounter.current : 0;
+
+  // ==================== CONCLUSÃO PAGE ====================
+  const conclusaoText = laudo.conclusao || '';
+  const conclusaoStartPage = conclusaoText.trim() ? pageCounter.current + 1 : 0;
+  if (conclusaoText.trim()) {
+    doc.addPage();
+    pageCounter.current++;
+    addHeaderFooter(doc, pageCounter.current, pageCounter.total);
+    writeSectionWithPageBreaks(doc, 'XI. CONCLUSÃO', conclusaoText, MARGIN_TOP, pageCounter);
+  }
+  const conclusaoEndPage = conclusaoText.trim() ? pageCounter.current : 0;
+
   // Update total pages
   const actualTotal = pageCounter.current;
 
@@ -538,29 +658,27 @@ export async function gerarPDF(laudo: Laudo) {
     doc.text(pageStr, A4_W - MARGIN_RIGHT, y, { align: 'right' });
   };
 
-  for (let i = 0; i < indexSections.length; i++) {
-    drawIndexLine(indexSections[i].label, String(i + 3), indexY);
+  // Text sections use simple page numbering (page 3 onwards)
+  const textSectionIds = ['introducao', 'objeto', 'objetivo', 'finalidade', 'responsabilidades', 'classificacao', 'lindeiros'];
+  const textSections = indexSections.filter(s => textSectionIds.includes(s.id));
+  for (let i = 0; i < textSections.length; i++) {
+    drawIndexLine(textSections[i].label, String(i + 3), indexY);
     indexY += 7;
   }
 
   // Add lindeiros + ambientes with page ranges
   if (laudo.lindeiros.length > 0) {
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...BLACK);
-    doc.text('VISTORIA DOS LINDEIROS', MARGIN_LEFT, indexY + 3);
-    indexY += 10;
-
+    indexY += 3;
     for (let li = 0; li < laudo.lindeiros.length; li++) {
       const lind = laudo.lindeiros[li];
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(...BLACK);
-      doc.text(`Lindeiro ${li + 1}: ${lind.endereco || 'Sem endereço'}`, MARGIN_LEFT + 5, indexY);
-      indexY += 6;
-
-      // Ambientes with page ranges
-      doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
+      doc.setTextColor(...BLACK);
+      doc.text(`  Lindeiro ${li + 1}: ${lind.endereco || 'Sem endereço'}`, MARGIN_LEFT + 5, indexY);
+      indexY += 5;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
       for (let ai = 0; ai < lind.ambientes.length; ai++) {
         const amb = lind.ambientes[ai];
         const ambKey = `L${li + 1}-${ai}`;
@@ -568,12 +686,10 @@ export async function gerarPDF(laudo: Laudo) {
         const ambLabel = amb.nome || 'Sem nome';
         let pageStr = '';
         if (pages) {
-          pageStr = pages.start === pages.end
-            ? `${pages.start}`
-            : `${pages.start} a ${pages.end}`;
+          pageStr = pages.start === pages.end ? `${pages.start}` : `${pages.start} a ${pages.end}`;
         }
         doc.setTextColor(...BLACK);
-        const fullLabel = `   ${ambLabel}`;
+        const fullLabel = `     ${ambLabel}`;
         doc.text(fullLabel, MARGIN_LEFT + 10, indexY);
         if (pageStr) {
           const lw = doc.getTextWidth(fullLabel);
@@ -582,16 +698,37 @@ export async function gerarPDF(laudo: Laudo) {
           const de = A4_W - MARGIN_RIGHT - pw - 2;
           doc.setTextColor(...GRAY);
           let dx = ds;
-          while (dx < de) {
-            doc.text('.', dx, indexY);
-            dx += 1.5;
-          }
+          while (dx < de) { doc.text('.', dx, indexY); dx += 1.5; }
           doc.text(pageStr, A4_W - MARGIN_RIGHT, indexY, { align: 'right' });
         }
-        indexY += 5;
+        indexY += 4.5;
       }
       indexY += 2;
     }
+  }
+
+  // New sections in index
+  indexY += 3;
+  doc.setFontSize(10);
+  if (croquiStartPage > 0) {
+    const ps = croquiStartPage === croquiEndPage ? `${croquiStartPage}` : `${croquiStartPage} a ${croquiEndPage}`;
+    drawIndexLine('VIII. Croqui', ps, indexY);
+    indexY += 7;
+  }
+  if (artStartPage > 0) {
+    const ps = artStartPage === artEndPage ? `${artStartPage}` : `${artStartPage} a ${artEndPage}`;
+    drawIndexLine('IX. ART', ps, indexY);
+    indexY += 7;
+  }
+  if (docsStartPage > 0) {
+    const ps = docsStartPage === docsEndPage ? `${docsStartPage}` : `${docsStartPage} a ${docsEndPage}`;
+    drawIndexLine('X. Documentações', ps, indexY);
+    indexY += 7;
+  }
+  if (conclusaoStartPage > 0) {
+    const ps = conclusaoStartPage === conclusaoEndPage ? `${conclusaoStartPage}` : `${conclusaoStartPage} a ${conclusaoEndPage}`;
+    drawIndexLine('XI. Conclusão', ps, indexY);
+    indexY += 7;
   }
 
   // Go back and update footers with correct total

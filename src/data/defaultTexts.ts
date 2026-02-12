@@ -95,4 +95,8 @@ export const SECOES_NAVEGAVEIS: SecaoNavegavel[] = [
   { id: 'responsabilidades', label: 'V. Responsabilidades' },
   { id: 'classificacao', label: 'VI. Classificação' },
   { id: 'lindeiros', label: 'VII. Vistoria dos Lindeiros' },
+  { id: 'croqui', label: 'VIII. Croqui' },
+  { id: 'art', label: 'IX. ART' },
+  { id: 'documentacoes', label: 'X. Documentações' },
+  { id: 'conclusao', label: 'XI. Conclusão' },
 ];

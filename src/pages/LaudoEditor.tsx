@@ -7,6 +7,10 @@ import { EditorToolbar } from '@/components/editor/EditorToolbar';
 import { CoverPage } from '@/components/editor/CoverPage';
 import { SectionPage } from '@/components/editor/SectionPage';
 import { LindeirosSection } from '@/components/editor/LindeirosSection';
+import { CroquiSection } from '@/components/editor/CroquiSection';
+import { ARTSection } from '@/components/editor/ARTSection';
+import { DocumentacoesSection } from '@/components/editor/DocumentacoesSection';
+import { ConclusaoSection } from '@/components/editor/ConclusaoSection';
 import { gerarPDF } from '@/lib/pdfGenerator';
 import type { SecaoId, Laudo } from '@/types/laudo';
 import { ZoomIn, ZoomOut } from 'lucide-react';
@@ -41,7 +45,6 @@ const LaudoEditor = () => {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-editor-bg">
-      {/* Top toolbar */}
       <EditorToolbar
         titulo={laudo.titulo}
         onTituloChange={(titulo) => handleUpdate({ titulo })}
@@ -57,68 +60,36 @@ const LaudoEditor = () => {
       />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
         <EditorSidebar
           secaoAtiva={secaoAtiva}
           onSecaoClick={setSecaoAtiva}
           lindeiros={laudo.lindeiros}
         />
 
-        {/* Main canvas area */}
         <main className="flex-1 overflow-auto p-8" style={{ background: 'hsl(var(--editor-bg))' }}>
           <div className="mb-4 flex items-center justify-end gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))}
-            >
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))}>
               <ZoomOut className="h-4 w-4" />
             </Button>
-            <span className="min-w-[4rem] text-center text-sm text-muted-foreground">
-              {Math.round(zoom * 100)}%
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setZoom((z) => Math.min(1.5, z + 0.1))}
-            >
+            <span className="min-w-[4rem] text-center text-sm text-muted-foreground">{Math.round(zoom * 100)}%</span>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoom((z) => Math.min(1.5, z + 0.1))}>
               <ZoomIn className="h-4 w-4" />
             </Button>
           </div>
 
-          <div
-            className="mx-auto"
-            style={{
-              transform: `scale(${zoom})`,
-              transformOrigin: 'top center',
-              width: '210mm',
-            }}
-          >
-            {/* Cover Page */}
+          <div className="mx-auto" style={{ transform: `scale(${zoom})`, transformOrigin: 'top center', width: '210mm' }}>
             {(secaoAtiva === 'capa' || secaoAtiva === 'indice') && (
               <div id="secao-capa" className="mb-8">
-                <CoverPage
-                  dadosCapa={laudo.dadosCapa}
-                  onUpdate={(dadosCapa) => handleUpdate({ dadosCapa })}
-                />
+                <CoverPage dadosCapa={laudo.dadosCapa} onUpdate={(dadosCapa) => handleUpdate({ dadosCapa })} />
               </div>
             )}
 
-            {/* Index Page */}
             {secaoAtiva === 'indice' && (
               <div id="secao-indice" className="a4-page mb-8">
-                <h2 className="mb-6 text-center text-lg font-bold text-primary" style={{ fontFamily: 'Arial, sans-serif' }}>
-                  ÍNDICE
-                </h2>
+                <h2 className="mb-6 text-center text-lg font-bold text-primary" style={{ fontFamily: 'Arial, sans-serif' }}>ÍNDICE</h2>
                 <div className="space-y-2">
                   {SECOES_NAVEGAVEIS.filter(s => s.id !== 'capa' && s.id !== 'indice').map((secao, i) => (
-                    <div
-                      key={secao.id}
-                      className="flex cursor-pointer items-center justify-between border-b border-dotted border-muted-foreground/30 py-1 text-sm hover:text-primary"
-                      onClick={() => setSecaoAtiva(secao.id)}
-                    >
+                    <div key={secao.id} className="flex cursor-pointer items-center justify-between border-b border-dotted border-muted-foreground/30 py-1 text-sm hover:text-primary" onClick={() => setSecaoAtiva(secao.id)}>
                       <span>{secao.label}</span>
                       <span className="text-muted-foreground">{i + 3}</span>
                     </div>
@@ -127,28 +98,43 @@ const LaudoEditor = () => {
               </div>
             )}
 
-            {/* Section Pages */}
             {secoesTexto.includes(secaoAtiva) && (
               <div id={`secao-${secaoAtiva}`} className="mb-8">
                 <SectionPage
                   secaoId={secaoAtiva}
                   conteudo={laudo.textos[secaoAtiva as keyof typeof laudo.textos]}
-                  onUpdate={(conteudo) =>
-                    handleUpdate({
-                      textos: { ...laudo.textos, [secaoAtiva]: conteudo },
-                    })
-                  }
+                  onUpdate={(conteudo) => handleUpdate({ textos: { ...laudo.textos, [secaoAtiva]: conteudo } })}
                 />
               </div>
             )}
 
-            {/* Lindeiros Section */}
             {secaoAtiva === 'lindeiros' && (
               <div id="secao-lindeiros" className="mb-8">
-                <LindeirosSection
-                  lindeiros={laudo.lindeiros}
-                  onUpdate={(lindeiros) => handleUpdate({ lindeiros })}
-                />
+                <LindeirosSection lindeiros={laudo.lindeiros} onUpdate={(lindeiros) => handleUpdate({ lindeiros })} />
+              </div>
+            )}
+
+            {secaoAtiva === 'croqui' && (
+              <div id="secao-croqui" className="mb-8">
+                <CroquiSection images={laudo.croquiImages || []} onUpdate={(croquiImages) => handleUpdate({ croquiImages })} />
+              </div>
+            )}
+
+            {secaoAtiva === 'art' && (
+              <div id="secao-art" className="mb-8">
+                <ARTSection images={laudo.artImages || []} onUpdate={(artImages) => handleUpdate({ artImages })} />
+              </div>
+            )}
+
+            {secaoAtiva === 'documentacoes' && (
+              <div id="secao-documentacoes" className="mb-8">
+                <DocumentacoesSection documentacoes={laudo.documentacoes || []} onUpdate={(documentacoes) => handleUpdate({ documentacoes })} />
+              </div>
+            )}
+
+            {secaoAtiva === 'conclusao' && (
+              <div id="secao-conclusao" className="mb-8">
+                <ConclusaoSection conclusao={laudo.conclusao || ''} onUpdate={(conclusao) => handleUpdate({ conclusao })} />
               </div>
             )}
           </div>
