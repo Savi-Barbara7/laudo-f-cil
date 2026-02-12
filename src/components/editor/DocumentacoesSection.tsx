@@ -71,7 +71,7 @@ export function DocumentacoesSection({ documentacoes, onUpdate }: DocumentacoesS
       )}
 
       <div className="space-y-6">
-        {documentacoes.map((doc, di) => (
+        {documentacoes.map((doc) => (
           <div key={doc.id} className="rounded-lg border p-4">
             <div className="mb-3 flex items-end gap-2">
               <div className="flex-1">
@@ -87,7 +87,6 @@ export function DocumentacoesSection({ documentacoes, onUpdate }: DocumentacoesS
               </Button>
             </div>
 
-            {/* Imagens das fichas */}
             <div className="grid grid-cols-2 gap-3">
               {doc.imagens.map((url, ii) => (
                 <div key={ii} className="relative rounded border">
