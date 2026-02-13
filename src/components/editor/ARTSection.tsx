@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, FileCheck, ZoomIn } from 'lucide-react';
+import { Plus, Trash2, FileCheck, ZoomIn, Pencil } from 'lucide-react';
 import { uploadImage } from '@/lib/storageHelper';
 import { toast } from '@/hooks/use-toast';
+import { ImageAnnotator } from './ImageAnnotator';
 
 interface ARTSectionProps {
   images: string[];
@@ -12,6 +13,7 @@ interface ARTSectionProps {
 export function ARTSection({ images, onUpdate }: ARTSectionProps) {
   const [uploading, setUploading] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [annotatingIndex, setAnnotatingIndex] = useState<number | null>(null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,6 +59,13 @@ export function ARTSection({ images, onUpdate }: ARTSectionProps) {
               <div className="absolute right-2 top-2 rounded bg-black/50 p-1">
                 <ZoomIn className="h-4 w-4 text-white" />
               </div>
+              <button
+                className="absolute left-2 top-2 rounded bg-primary p-1 text-primary-foreground hover:bg-primary/80"
+                onClick={(e) => { e.stopPropagation(); setAnnotatingIndex(i); }}
+                title="Anotar imagem"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
             </div>
             <div className="mt-2 flex justify-between items-center">
               <span className="text-xs text-muted-foreground">ART - Página {i + 1}</span>
@@ -82,6 +91,17 @@ export function ARTSection({ images, onUpdate }: ARTSectionProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setLightbox(null)}>
           <img src={lightbox} alt="ART ampliada" className="max-h-[90vh] max-w-[90vw] rounded-lg" />
         </div>
+      )}
+
+      {annotatingIndex !== null && images[annotatingIndex] && (
+        <ImageAnnotator
+          imageUrl={images[annotatingIndex]}
+          onCancel={() => setAnnotatingIndex(null)}
+          onSave={(dataUrl) => {
+            onUpdate(images.map((url, i) => i === annotatingIndex ? dataUrl : url));
+            setAnnotatingIndex(null);
+          }}
+        />
       )}
     </div>
   );

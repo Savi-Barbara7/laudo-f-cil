@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, FolderOpen, ZoomIn, ImagePlus } from 'lucide-react';
+import { Plus, Trash2, FolderOpen, ZoomIn, ImagePlus, Pencil } from 'lucide-react';
 import { uploadImage } from '@/lib/storageHelper';
 import type { Documentacao } from '@/types/laudo';
 import { toast } from '@/hooks/use-toast';
+import { ImageAnnotator } from './ImageAnnotator';
 
 interface DocumentacoesSectionProps {
   documentacoes: Documentacao[];
@@ -15,6 +16,7 @@ interface DocumentacoesSectionProps {
 export function DocumentacoesSection({ documentacoes, onUpdate }: DocumentacoesSectionProps) {
   const [uploading, setUploading] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [annotating, setAnnotating] = useState<{ docId: string; imgIndex: number; url: string } | null>(null);
 
   const handleAddDoc = () => {
     const nova: Documentacao = { id: crypto.randomUUID(), nome: '', imagens: [] };
@@ -89,13 +91,20 @@ export function DocumentacoesSection({ documentacoes, onUpdate }: DocumentacoesS
 
             <div className="grid grid-cols-2 gap-3">
               {doc.imagens.map((url, ii) => (
-                <div key={ii} className="relative rounded border">
+                <div key={ii} className="relative rounded border group">
                   <div className="cursor-pointer" onClick={() => setLightbox(url)}>
                     <img src={url} alt={`Ficha ${ii + 1}`} className="w-full rounded object-contain" style={{ maxHeight: '300px' }} />
                     <div className="absolute right-1 top-1 rounded bg-black/50 p-0.5">
                       <ZoomIn className="h-3 w-3 text-white" />
                     </div>
                   </div>
+                  <button
+                    className="absolute left-1 top-1 hidden rounded bg-primary p-0.5 text-primary-foreground group-hover:block"
+                    onClick={() => setAnnotating({ docId: doc.id, imgIndex: ii, url })}
+                    title="Anotar imagem"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
                   <Button
                     variant="ghost" size="icon"
                     className="absolute bottom-1 right-1 h-6 w-6 bg-background/80 text-destructive"
@@ -131,6 +140,20 @@ export function DocumentacoesSection({ documentacoes, onUpdate }: DocumentacoesS
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setLightbox(null)}>
           <img src={lightbox} alt="Ficha ampliada" className="max-h-[90vh] max-w-[90vw] rounded-lg" />
         </div>
+      )}
+
+      {annotating && (
+        <ImageAnnotator
+          imageUrl={annotating.url}
+          onCancel={() => setAnnotating(null)}
+          onSave={(dataUrl) => {
+            const { docId, imgIndex } = annotating;
+            onUpdate(documentacoes.map(d =>
+              d.id === docId ? { ...d, imagens: d.imagens.map((url, i) => i === imgIndex ? dataUrl : url) } : d
+            ));
+            setAnnotating(null);
+          }}
+        />
       )}
     </div>
   );

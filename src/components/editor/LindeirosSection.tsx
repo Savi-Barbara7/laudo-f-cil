@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Plus, Trash2, ImagePlus, X, Loader2 } from 'lucide-react';
+import { Plus, Trash2, ImagePlus, X, Loader2, Pencil } from 'lucide-react';
 import { uploadImage } from '@/lib/storageHelper';
+import { ImageAnnotator } from './ImageAnnotator';
 
 interface LindeirosProps {
   lindeiros: Lindeiro[];
@@ -16,6 +17,7 @@ interface LindeirosProps {
 export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
   const [uploadingAmb, setUploadingAmb] = useState<string | null>(null);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [annotating, setAnnotating] = useState<{ lindIndex: number; ambIndex: number; fotoIndex: number; url: string } | null>(null);
 
   const addLindeiro = () => {
     const novo: Lindeiro = {
@@ -252,6 +254,13 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
                         >
                           <X className="h-3 w-3" />
                         </button>
+                        <button
+                          onClick={() => setAnnotating({ lindIndex: li, ambIndex: ai, fotoIndex: fi, url: foto.dataUrl })}
+                          className="absolute left-1 top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground group-hover:flex"
+                          title="Anotar foto"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
                         <Input
                           value={foto.legenda}
                           onChange={(e) => updateFotoLegenda(li, ai, fi, e.target.value)}
@@ -300,6 +309,25 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
           Adicionar Lindeiro
         </Button>
       </div>
+
+      {/* Image Annotator */}
+      {annotating && (
+        <ImageAnnotator
+          imageUrl={annotating.url}
+          onCancel={() => setAnnotating(null)}
+          onSave={(dataUrl) => {
+            const { lindIndex, ambIndex, fotoIndex } = annotating;
+            const updated = [...lindeiros];
+            const ambs = [...updated[lindIndex].ambientes];
+            const fotos = [...ambs[ambIndex].fotos];
+            fotos[fotoIndex] = { ...fotos[fotoIndex], dataUrl };
+            ambs[ambIndex] = { ...ambs[ambIndex], fotos };
+            updated[lindIndex] = { ...updated[lindIndex], ambientes: ambs };
+            onUpdate(updated);
+            setAnnotating(null);
+          }}
+        />
+      )}
     </div>
   );
 }

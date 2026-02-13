@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Trash2, ImageIcon, ZoomIn } from 'lucide-react';
+import { Plus, Trash2, ImageIcon, ZoomIn, Pencil } from 'lucide-react';
 import { uploadImage } from '@/lib/storageHelper';
 import type { CroquiImage } from '@/types/laudo';
 import { toast } from '@/hooks/use-toast';
+import { ImageAnnotator } from './ImageAnnotator';
 
 interface CroquiSectionProps {
   images: CroquiImage[];
@@ -15,6 +16,7 @@ interface CroquiSectionProps {
 export function CroquiSection({ images, onUpdate }: CroquiSectionProps) {
   const [uploading, setUploading] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [annotatingIndex, setAnnotatingIndex] = useState<number | null>(null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -65,6 +67,13 @@ export function CroquiSection({ images, onUpdate }: CroquiSectionProps) {
               <div className="absolute right-2 top-2 rounded bg-black/50 p-1">
                 <ZoomIn className="h-4 w-4 text-white" />
               </div>
+              <button
+                className="absolute left-2 top-2 rounded bg-primary p-1 text-primary-foreground hover:bg-primary/80"
+                onClick={(e) => { e.stopPropagation(); setAnnotatingIndex(i); }}
+                title="Anotar imagem"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
             </div>
             <div className="flex items-end gap-2">
               <div className="flex-1">
@@ -97,6 +106,17 @@ export function CroquiSection({ images, onUpdate }: CroquiSectionProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setLightbox(null)}>
           <img src={lightbox} alt="Croqui ampliado" className="max-h-[90vh] max-w-[90vw] rounded-lg" />
         </div>
+      )}
+
+      {annotatingIndex !== null && images[annotatingIndex] && (
+        <ImageAnnotator
+          imageUrl={images[annotatingIndex].url}
+          onCancel={() => setAnnotatingIndex(null)}
+          onSave={(dataUrl) => {
+            onUpdate(images.map((img, i) => i === annotatingIndex ? { ...img, url: dataUrl } : img));
+            setAnnotatingIndex(null);
+          }}
+        />
       )}
     </div>
   );

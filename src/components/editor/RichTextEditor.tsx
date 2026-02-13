@@ -12,11 +12,12 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { uploadImage } from '@/lib/storageHelper';
 import { toast } from '@/hooks/use-toast';
+import mammoth from 'mammoth';
 import {
   Bold, Italic, Underline as UnderlineIcon, List, ListOrdered,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Image as ImageIcon, Table as TableIcon, Minus, Heading1, Heading2,
-  Type, Undo, Redo, Trash2,
+  Type, Undo, Redo, Trash2, FileUp,
 } from 'lucide-react';
 import {
   Select,
@@ -166,6 +167,29 @@ function EditorToolbar({ editor }: { editor: Editor }) {
       </ToolbarButton>
       <ToolbarButton onClick={handleInsertPageBreak} title="Quebra de página">
         <Minus className="h-3.5 w-3.5" />
+      </ToolbarButton>
+      <ToolbarButton onClick={() => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.docx';
+        input.onchange = async () => {
+          const file = input.files?.[0];
+          if (!file) return;
+          try {
+            const arrayBuffer = await file.arrayBuffer();
+            const result = await mammoth.convertToHtml({ arrayBuffer });
+            editor.chain().focus().insertContent(result.value).run();
+            toast({ title: 'Documento Word importado!' });
+            if (result.messages.length > 0) {
+              console.warn('Mammoth warnings:', result.messages);
+            }
+          } catch (err) {
+            toast({ title: 'Erro ao importar Word', description: String(err), variant: 'destructive' });
+          }
+        };
+        input.click();
+      }} title="Importar arquivo Word (.docx)">
+        <FileUp className="h-3.5 w-3.5" />
       </ToolbarButton>
 
       {/* Table controls (shown when in table) */}
