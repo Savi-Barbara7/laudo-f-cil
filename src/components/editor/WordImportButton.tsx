@@ -13,10 +13,14 @@ export function WordImportButton({ onImport, label = 'Importar Word (.docx)' }: 
   const handleImport = useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.doc,.docx';
+    input.accept = '.docx';
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
+      if (!file.name.toLowerCase().endsWith('.docx')) {
+        toast({ title: 'Formato não suportado', description: 'Apenas arquivos .docx são aceitos. Salve o arquivo .doc como .docx no Word e tente novamente.', variant: 'destructive' });
+        return;
+      }
       try {
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.convertToHtml({ arrayBuffer });
