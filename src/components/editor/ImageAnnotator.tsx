@@ -238,78 +238,75 @@ export function ImageAnnotator({ imageUrl, onSave, onCancel }: ImageAnnotatorPro
   ];
 
   return (
-    <div className="absolute inset-0 z-40 flex items-start justify-center overflow-auto bg-black/60 p-2">
-      <div className="sticky top-0 flex max-h-[90vh] max-w-[95vw] flex-col overflow-hidden rounded-xl bg-card shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b px-4 py-2">
-          <h3 className="text-sm font-semibold">Anotações Técnicas</h3>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onCancel}>
-            <X className="h-4 w-4" />
+    <div className="relative z-40 my-2 mx-auto w-fit rounded-xl border bg-card shadow-2xl">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b px-3 py-1.5">
+        <h3 className="text-sm font-semibold">Anotações Técnicas</h3>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onCancel}>
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-1 border-b px-3 py-1.5">
+        {tools.map(t => (
+          <Button
+            key={t.id}
+            variant={activeTool === t.id ? 'default' : 'ghost'}
+            size="sm"
+            className="h-7 gap-1 text-xs"
+            onClick={() => setActiveTool(t.id)}
+            title={t.label}
+          >
+            {t.icon}
+            <span className="hidden sm:inline">{t.label}</span>
           </Button>
+        ))}
+
+        <div className="mx-1 h-5 w-px bg-border" />
+
+        {COLORS.map(c => (
+          <button
+            key={c}
+            className={`h-5 w-5 rounded-full border-2 transition-transform ${activeColor === c ? 'scale-125 border-foreground' : 'border-transparent'}`}
+            style={{ backgroundColor: c }}
+            onClick={() => setActiveColor(c)}
+          />
+        ))}
+
+        <div className="mx-1 h-5 w-px bg-border" />
+
+        {activeTool === 'text' && (
+          <Input
+            value={textInput}
+            onChange={(e) => setTextInput(e.target.value)}
+            placeholder="Texto..."
+            className="h-7 w-32 text-xs"
+          />
+        )}
+
+        <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs" onClick={handleUndo} title="Desfazer">
+          <Undo className="h-3.5 w-3.5" />
+        </Button>
+        <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-destructive" onClick={handleDelete} title="Excluir selecionado">
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+
+      {/* Canvas */}
+      <div className="bg-muted/50 p-2">
+        <div className="mx-auto w-fit rounded bg-white shadow">
+          <canvas ref={canvasRef} />
         </div>
+      </div>
 
-        {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-1 border-b px-3 py-2">
-          {tools.map(t => (
-            <Button
-              key={t.id}
-              variant={activeTool === t.id ? 'default' : 'ghost'}
-              size="sm"
-              className="h-8 gap-1 text-xs"
-              onClick={() => setActiveTool(t.id)}
-              title={t.label}
-            >
-              {t.icon}
-              <span className="hidden sm:inline">{t.label}</span>
-            </Button>
-          ))}
-
-          <div className="mx-2 h-6 w-px bg-border" />
-
-          {/* Colors */}
-          {COLORS.map(c => (
-            <button
-              key={c}
-              className={`h-6 w-6 rounded-full border-2 transition-transform ${activeColor === c ? 'scale-125 border-foreground' : 'border-transparent'}`}
-              style={{ backgroundColor: c }}
-              onClick={() => setActiveColor(c)}
-            />
-          ))}
-
-          <div className="mx-2 h-6 w-px bg-border" />
-
-          {activeTool === 'text' && (
-            <Input
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-              placeholder="Texto..."
-              className="h-7 w-32 text-xs"
-            />
-          )}
-
-          <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs" onClick={handleUndo} title="Desfazer">
-            <Undo className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs text-destructive" onClick={handleDelete} title="Excluir selecionado">
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-
-        {/* Canvas */}
-        <div className="flex-1 overflow-auto bg-muted/50 p-4">
-          <div className="mx-auto w-fit rounded border bg-white shadow">
-            <canvas ref={canvasRef} />
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t px-4 py-2">
-          <Button variant="outline" size="sm" onClick={onCancel}>Cancelar</Button>
-          <Button size="sm" className="gap-1" onClick={handleSave}>
-            <Save className="h-3.5 w-3.5" />
-            Salvar Anotação
-          </Button>
-        </div>
+      {/* Footer */}
+      <div className="flex items-center justify-end gap-2 border-t px-3 py-1.5">
+        <Button variant="outline" size="sm" onClick={onCancel}>Cancelar</Button>
+        <Button size="sm" className="gap-1" onClick={handleSave}>
+          <Save className="h-3.5 w-3.5" />
+          Salvar Anotação
+        </Button>
       </div>
     </div>
   );
