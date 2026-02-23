@@ -11,7 +11,7 @@ import { CroquiSection } from '@/components/editor/CroquiSection';
 import { ARTSection } from '@/components/editor/ARTSection';
 import { DocumentacoesSection } from '@/components/editor/DocumentacoesSection';
 import { ConclusaoSection } from '@/components/editor/ConclusaoSection';
-import { RichTextEditor } from '@/components/editor/RichTextEditor';
+import { WordImportButton } from '@/components/editor/WordImportButton';
 import { gerarPDF } from '@/lib/pdfGenerator';
 import type { SecaoId, Laudo } from '@/types/laudo';
 import { ZoomIn, ZoomOut } from 'lucide-react';
@@ -151,53 +151,17 @@ const LaudoEditor = () => {
             )}
           </div>
 
-          {/* Rich Text Editor (outside zoom for usability) */}
+          {/* Word import buttons (outside zoom for usability) */}
           {(secaoAtiva === 'croqui' || secaoAtiva === 'art' || secaoAtiva === 'documentacoes' || secaoAtiva === 'conclusao') && (
-            <div className="mx-auto mt-6 max-w-4xl">
-              {secaoAtiva === 'croqui' && (
-                <div>
-                  <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Observações do Croqui</h3>
-                  <RichTextEditor
-                    content={laudo.croquiRichText || ''}
-                    onUpdate={(croquiRichText) => handleUpdate({ croquiRichText })}
-                    placeholder="Adicione observações sobre o croqui..."
-                    minHeight="200px"
-                  />
-                </div>
-              )}
-              {secaoAtiva === 'art' && (
-                <div>
-                  <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Observações da ART</h3>
-                  <RichTextEditor
-                    content={laudo.artRichText || ''}
-                    onUpdate={(artRichText) => handleUpdate({ artRichText })}
-                    placeholder="Adicione observações sobre a ART..."
-                    minHeight="200px"
-                  />
-                </div>
-              )}
-              {secaoAtiva === 'documentacoes' && (
-                <div>
-                  <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Observações das Documentações</h3>
-                  <RichTextEditor
-                    content={laudo.documentacoesRichText || ''}
-                    onUpdate={(documentacoesRichText) => handleUpdate({ documentacoesRichText })}
-                    placeholder="Adicione observações sobre as documentações..."
-                    minHeight="200px"
-                  />
-                </div>
-              )}
-              {secaoAtiva === 'conclusao' && (
-                <div>
-                  <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Editor da Conclusão</h3>
-                  <RichTextEditor
-                    content={laudo.conclusao || ''}
-                    onUpdate={(conclusao) => handleUpdate({ conclusao })}
-                    placeholder="Ex: Volume 01 contempla os lindeiros de 1 a 10..."
-                    minHeight="400px"
-                  />
-                </div>
-              )}
+            <div className="mx-auto mt-6 flex max-w-4xl justify-center">
+              <WordImportButton
+                onImport={(html) => {
+                  if (secaoAtiva === 'croqui') handleUpdate({ croquiRichText: (laudo.croquiRichText || '') + html });
+                  else if (secaoAtiva === 'art') handleUpdate({ artRichText: (laudo.artRichText || '') + html });
+                  else if (secaoAtiva === 'documentacoes') handleUpdate({ documentacoesRichText: (laudo.documentacoesRichText || '') + html });
+                  else if (secaoAtiva === 'conclusao') handleUpdate({ conclusao: (laudo.conclusao || '') + html });
+                }}
+              />
             </div>
           )}
         </main>

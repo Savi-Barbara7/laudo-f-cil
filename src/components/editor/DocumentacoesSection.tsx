@@ -92,26 +92,37 @@ export function DocumentacoesSection({ documentacoes, onUpdate }: DocumentacoesS
             <div className="grid grid-cols-2 gap-3">
               {doc.imagens.map((url, ii) => (
                 <div key={ii} className="relative rounded border group">
-                  <div className="cursor-pointer" onClick={() => setLightbox(url)}>
-                    <img src={url} alt={`Ficha ${ii + 1}`} className="w-full rounded object-contain" style={{ maxHeight: '300px' }} />
-                    <div className="absolute right-1 top-1 rounded bg-black/50 p-0.5">
-                      <ZoomIn className="h-3 w-3 text-white" />
-                    </div>
+                  <img
+                    src={url}
+                    alt={`Ficha ${ii + 1}`}
+                    className="w-full cursor-pointer rounded object-contain"
+                    style={{ maxHeight: '300px' }}
+                    onClick={() => setAnnotating({ docId: doc.id, imgIndex: ii, url })}
+                    title="Clique para editar/anotar"
+                  />
+                  <div className="absolute right-1 top-1 flex gap-1">
+                    <button
+                      className="flex h-6 w-6 items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"
+                      onClick={(e) => { e.stopPropagation(); setLightbox(url); }}
+                      title="Ampliar"
+                    >
+                      <ZoomIn className="h-3 w-3" />
+                    </button>
+                    <Button
+                      variant="ghost" size="icon"
+                      className="h-6 w-6 bg-destructive text-destructive-foreground hover:bg-destructive/80"
+                      onClick={() => handleRemoveImagem(doc.id, ii)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
                   <button
-                    className="absolute left-1 top-1 hidden rounded bg-primary p-0.5 text-primary-foreground group-hover:block"
-                    onClick={() => setAnnotating({ docId: doc.id, imgIndex: ii, url })}
+                    className="absolute left-1 top-1 rounded bg-primary p-0.5 text-primary-foreground hover:bg-primary/80"
+                    onClick={(e) => { e.stopPropagation(); setAnnotating({ docId: doc.id, imgIndex: ii, url }); }}
                     title="Anotar imagem"
                   >
                     <Pencil className="h-3 w-3" />
                   </button>
-                  <Button
-                    variant="ghost" size="icon"
-                    className="absolute bottom-1 right-1 h-6 w-6 bg-background/80 text-destructive"
-                    onClick={() => handleRemoveImagem(doc.id, ii)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
                 </div>
               ))}
             </div>
