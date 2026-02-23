@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Plus, Trash2, ImagePlus, X, Loader2, Pencil } from 'lucide-react';
+import { Plus, Trash2, ImagePlus, X, Loader2, Pencil, ZoomIn } from 'lucide-react';
 import { uploadImage } from '@/lib/storageHelper';
 import { ImageAnnotator } from './ImageAnnotator';
 
@@ -77,7 +76,6 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
       const fotos = [...ambs[ambIndex].fotos];
       const startCount = fotos.length;
 
-      // Upload all in parallel for speed
       const uploads = Array.from(files).map(async (file, i) => {
         const path = `lindeiros/${lindeiros[lindIndex].id}/${ambId}/${crypto.randomUUID()}.jpg`;
         const publicUrl = await uploadImage(file, path);
@@ -94,6 +92,41 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
 
       ambs[ambIndex] = { ...ambs[ambIndex], fotos: [...fotos] };
       updated[lindIndex] = { ...updated[lindIndex], ambientes: [...ambs] };
+      onUpdate([...updated]);
+    } catch (err) {
+      console.error('Upload failed:', err);
+    } finally {
+      setUploadingAmb(null);
+    }
+  };
+
+  const handleInsertFotoAt = async (lindIndex: number, ambIndex: number, insertAt: number, files: FileList) => {
+    const ambId = lindeiros[lindIndex].ambientes[ambIndex].id;
+    setUploadingAmb(ambId);
+    try {
+      const updated = [...lindeiros];
+      const ambs = [...updated[lindIndex].ambientes];
+      const fotos = [...ambs[ambIndex].fotos];
+
+      const uploads = Array.from(files).map(async (file, i) => {
+        const path = `lindeiros/${lindeiros[lindIndex].id}/${ambId}/${crypto.randomUUID()}.jpg`;
+        const publicUrl = await uploadImage(file, path);
+        return {
+          id: crypto.randomUUID(),
+          dataUrl: publicUrl,
+          legenda: `Foto ${insertAt + i + 1}`,
+          ordem: insertAt + i,
+        } as Foto;
+      });
+
+      const newFotos = await Promise.all(uploads);
+      fotos.splice(insertAt, 0, ...newFotos);
+
+      // Reorder labels
+      fotos.forEach((f, i) => { f.ordem = i; });
+
+      ambs[ambIndex] = { ...ambs[ambIndex], fotos };
+      updated[lindIndex] = { ...updated[lindIndex], ambientes: ambs };
       onUpdate([...updated]);
     } catch (err) {
       console.error('Upload failed:', err);
@@ -125,14 +158,12 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
 
   return (
     <div>
-      {/* Lightbox dialog */}
-      <Dialog open={!!lightboxSrc} onOpenChange={() => setLightboxSrc(null)}>
-        <DialogContent className="flex max-h-[90vh] max-w-[90vw] items-center justify-center border-none bg-black/90 p-2">
-          {lightboxSrc && (
-            <img src={lightboxSrc} alt="Foto ampliada" className="max-h-[85vh] max-w-full rounded object-contain" />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Lightbox */}
+      {lightboxSrc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setLightboxSrc(null)}>
+          <img src={lightboxSrc} alt="Foto ampliada" className="max-h-[90vh] max-w-[90vw] rounded-lg" />
+        </div>
+      )}
 
       {/* Each lindeiro as an A4 page */}
       {lindeiros.map((lind, li) => (
@@ -244,29 +275,56 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
                         <img
                           src={foto.dataUrl}
                           alt={foto.legenda}
-                          className="h-32 w-full cursor-pointer rounded border object-cover transition-opacity hover:opacity-80"
+                          className="h-32 w-full cursor-pointer rounded border object-cover transition-opacity hover:opacity-90"
                           loading="lazy"
-                          onClick={() => setLightboxSrc(foto.dataUrl)}
-                        />
-                        <button
-                          onClick={() => removeFoto(li, ai, fi)}
-                          className="absolute right-1 top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground group-hover:flex"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                        <button
                           onClick={() => setAnnotating({ lindIndex: li, ambIndex: ai, fotoIndex: fi, url: foto.dataUrl })}
-                          className="absolute left-1 top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground group-hover:flex"
+                          title="Clique para editar/anotar"
+                        />
+                        {/* Always visible action buttons */}
+                        <div className="absolute right-1 top-1 flex gap-1">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setLightboxSrc(foto.dataUrl); }}
+                            className="flex h-6 w-6 items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"
+                            title="Ampliar"
+                          >
+                            <ZoomIn className="h-3 w-3" />
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); removeFoto(li, ai, fi); }}
+                            className="flex h-6 w-6 items-center justify-center rounded bg-destructive text-destructive-foreground hover:bg-destructive/80"
+                            title="Excluir foto"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setAnnotating({ lindIndex: li, ambIndex: ai, fotoIndex: fi, url: foto.dataUrl }); }}
+                          className="absolute left-1 top-1 flex h-6 w-6 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/80"
                           title="Anotar foto"
                         >
                           <Pencil className="h-3 w-3" />
                         </button>
-                        <Input
-                          value={foto.legenda}
-                          onChange={(e) => updateFotoLegenda(li, ai, fi, e.target.value)}
-                          className="mt-1 h-6 text-[9pt]"
-                          style={{ fontFamily: 'Arial, sans-serif' }}
-                        />
+                        <div className="mt-1 flex items-center gap-1">
+                          <Input
+                            value={foto.legenda}
+                            onChange={(e) => updateFotoLegenda(li, ai, fi, e.target.value)}
+                            className="h-6 flex-1 text-[9pt]"
+                            style={{ fontFamily: 'Arial, sans-serif' }}
+                          />
+                          {/* Insert photo after this one */}
+                          <label className="cursor-pointer" title="Inserir foto após esta">
+                            <div className="flex h-6 w-6 items-center justify-center rounded border border-dashed border-muted-foreground/40 text-muted-foreground hover:bg-muted/40">
+                              <Plus className="h-3 w-3" />
+                            </div>
+                            <input
+                              type="file"
+                              multiple
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => e.target.files && handleInsertFotoAt(li, ai, fi + 1, e.target.files)}
+                            />
+                          </label>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -292,7 +350,6 @@ export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
               </div>
             ))}
 
-            {/* Add ambiente button at the bottom */}
             {lind.ambientes.length > 0 && (
               <Button variant="outline" size="sm" onClick={() => addAmbiente(li)} className="mt-2 w-full gap-1 text-xs">
                 <Plus className="h-3 w-3" /> Adicionar Ambiente

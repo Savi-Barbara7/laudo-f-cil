@@ -54,10 +54,23 @@ export function ARTSection({ images, onUpdate }: ARTSectionProps) {
       <div className="space-y-4">
         {images.map((url, i) => (
           <div key={i} className="relative rounded-lg border p-3">
-            <div className="relative cursor-pointer" onClick={() => setLightbox(url)}>
-              <img src={url} alt={`ART ${i + 1}`} className="w-full rounded object-contain" style={{ maxHeight: '500px' }} />
-              <div className="absolute right-2 top-2 rounded bg-black/50 p-1">
-                <ZoomIn className="h-4 w-4 text-white" />
+            <div className="relative">
+              <img
+                src={url}
+                alt={`ART ${i + 1}`}
+                className="w-full cursor-pointer rounded object-contain"
+                style={{ maxHeight: '500px' }}
+                onClick={() => setAnnotatingIndex(i)}
+                title="Clique para editar/anotar"
+              />
+              <div className="absolute right-2 top-2 flex gap-1">
+                <button
+                  className="flex h-7 w-7 items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"
+                  onClick={(e) => { e.stopPropagation(); setLightbox(url); }}
+                  title="Ampliar"
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </button>
               </div>
               <button
                 className="absolute left-2 top-2 rounded bg-primary p-1 text-primary-foreground hover:bg-primary/80"
