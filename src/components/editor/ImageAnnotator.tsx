@@ -238,8 +238,8 @@ export function ImageAnnotator({ imageUrl, onSave, onCancel }: ImageAnnotatorPro
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
-      <div className="flex max-h-[95vh] max-w-[95vw] flex-col overflow-hidden rounded-xl bg-card shadow-2xl">
+    <div className="absolute inset-0 z-40 flex items-start justify-center overflow-auto bg-black/60 p-2">
+      <div className="sticky top-0 flex max-h-[90vh] max-w-[95vw] flex-col overflow-hidden rounded-xl bg-card shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b px-4 py-2">
           <h3 className="text-sm font-semibold">Anotações Técnicas</h3>

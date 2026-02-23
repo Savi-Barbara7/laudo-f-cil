@@ -13,7 +13,7 @@ export function WordImportButton({ onImport, label = 'Importar Word (.docx)' }: 
   const handleImport = useCallback(() => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.docx';
+    input.accept = '.doc,.docx';
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
