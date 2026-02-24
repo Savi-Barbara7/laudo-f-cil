@@ -238,7 +238,8 @@ export function ImageAnnotator({ imageUrl, onSave, onCancel }: ImageAnnotatorPro
   ];
 
   return (
-    <div className="relative z-40 my-2 mx-auto w-fit rounded-xl border bg-card shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onCancel}>
+      <div className="mx-auto w-fit max-h-[95vh] overflow-auto rounded-xl border bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
       {/* Header */}
       <div className="flex items-center justify-between border-b px-3 py-1.5">
         <h3 className="text-sm font-semibold">Anotações Técnicas</h3>
@@ -307,6 +308,7 @@ export function ImageAnnotator({ imageUrl, onSave, onCancel }: ImageAnnotatorPro
           <Save className="h-3.5 w-3.5" />
           Salvar Anotação
         </Button>
+      </div>
       </div>
     </div>
   );
