@@ -7,13 +7,16 @@ import { uploadImage } from '@/lib/storageHelper';
 import type { Documentacao } from '@/types/laudo';
 import { toast } from '@/hooks/use-toast';
 import { ImageAnnotator } from './ImageAnnotator';
+import { RichTextEditor } from './RichTextEditor';
 
 interface DocumentacoesSectionProps {
   documentacoes: Documentacao[];
   onUpdate: (docs: Documentacao[]) => void;
+  richText?: string;
+  onRichTextUpdate?: (html: string) => void;
 }
 
-export function DocumentacoesSection({ documentacoes, onUpdate }: DocumentacoesSectionProps) {
+export function DocumentacoesSection({ documentacoes, onUpdate, richText, onRichTextUpdate }: DocumentacoesSectionProps) {
   const [uploading, setUploading] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [annotating, setAnnotating] = useState<{ docId: string; imgIndex: number; url: string } | null>(null);
@@ -57,95 +60,106 @@ export function DocumentacoesSection({ documentacoes, onUpdate }: DocumentacoesS
   };
 
   return (
-    <div className="a4-page mb-8">
-      <h2 className="mb-6 text-center text-lg font-bold text-primary" style={{ fontFamily: 'Arial, sans-serif' }}>
-        DOCUMENTAÇÕES
-      </h2>
+    <div className="space-y-4">
+      <div className="a4-page mb-4">
+        <h2 className="mb-6 text-center text-lg font-bold text-primary" style={{ fontFamily: 'Arial, sans-serif' }}>
+          DOCUMENTAÇÕES
+        </h2>
 
-      {documentacoes.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <FolderOpen className="mb-4 h-16 w-16 text-muted-foreground/40" />
-          <p className="mb-2 text-muted-foreground">Nenhuma documentação adicionada</p>
-          <p className="mb-4 text-xs text-muted-foreground">
-            Adicione fichas de vistoria técnica quando disponíveis
-          </p>
-        </div>
-      )}
-
-      <div className="space-y-6">
-        {documentacoes.map((doc) => (
-          <div key={doc.id} className="rounded-lg border p-4">
-            <div className="mb-3 flex items-end gap-2">
-              <div className="flex-1">
-                <Label className="text-xs">Título / Descrição da Documentação</Label>
-                <Input
-                  value={doc.nome}
-                  onChange={(e) => handleNomeChange(doc.id, e.target.value)}
-                  placeholder="Ex: Ficha de Vistoria Técnica - PAVILHÃO COMERCIAL - Av. Victor Kunz, 2740"
-                />
-              </div>
-              <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleRemoveDoc(doc.id)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              {doc.imagens.map((url, ii) => (
-                <div key={ii} className="relative rounded border group">
-                  <img
-                    src={url}
-                    alt={`Ficha ${ii + 1}`}
-                    className="w-full cursor-pointer rounded object-contain"
-                    style={{ maxHeight: '300px' }}
-                    onClick={() => setAnnotating({ docId: doc.id, imgIndex: ii, url })}
-                    title="Clique para editar/anotar"
-                  />
-                  <div className="absolute right-1 top-1 flex gap-1">
-                    <button
-                      className="flex h-6 w-6 items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"
-                      onClick={(e) => { e.stopPropagation(); setLightbox(url); }}
-                      title="Ampliar"
-                    >
-                      <ZoomIn className="h-3 w-3" />
-                    </button>
-                    <Button
-                      variant="ghost" size="icon"
-                      className="h-6 w-6 bg-destructive text-destructive-foreground hover:bg-destructive/80"
-                      onClick={() => handleRemoveImagem(doc.id, ii)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                  <button
-                    className="absolute left-1 top-1 rounded bg-primary p-0.5 text-primary-foreground hover:bg-primary/80"
-                    onClick={(e) => { e.stopPropagation(); setAnnotating({ docId: doc.id, imgIndex: ii, url }); }}
-                    title="Anotar imagem"
-                  >
-                    <Pencil className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-3 flex justify-center">
-              <Button variant="outline" size="sm" className="gap-1" disabled={uploading === doc.id} asChild>
-                <label className="cursor-pointer">
-                  <ImagePlus className="h-3.5 w-3.5" />
-                  {uploading === doc.id ? 'Enviando...' : 'Adicionar Ficha'}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadImagem(doc.id, e)} />
-                </label>
-              </Button>
-            </div>
+        {documentacoes.length === 0 && !richText && (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <FolderOpen className="mb-4 h-16 w-16 text-muted-foreground/40" />
+            <p className="mb-2 text-muted-foreground">Nenhuma documentação adicionada</p>
+            <p className="mb-4 text-xs text-muted-foreground">
+              Adicione fichas de vistoria ou importe um arquivo Word
+            </p>
           </div>
-        ))}
+        )}
+
+        <div className="space-y-6">
+          {documentacoes.map((doc) => (
+            <div key={doc.id} className="rounded-lg border p-4">
+              <div className="mb-3 flex items-end gap-2">
+                <div className="flex-1">
+                  <Label className="text-xs">Título / Descrição da Documentação</Label>
+                  <Input
+                    value={doc.nome}
+                    onChange={(e) => handleNomeChange(doc.id, e.target.value)}
+                    placeholder="Ex: Ficha de Vistoria Técnica - PAVILHÃO COMERCIAL - Av. Victor Kunz, 2740"
+                  />
+                </div>
+                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleRemoveDoc(doc.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {doc.imagens.map((url, ii) => (
+                  <div key={ii} className="relative rounded border group">
+                    <img
+                      src={url}
+                      alt={`Ficha ${ii + 1}`}
+                      className="w-full cursor-pointer rounded object-contain"
+                      style={{ maxHeight: '300px' }}
+                      onClick={() => setAnnotating({ docId: doc.id, imgIndex: ii, url })}
+                      title="Clique para editar/anotar"
+                    />
+                    <div className="absolute right-1 top-1 flex gap-1">
+                      <button
+                        className="flex h-6 w-6 items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"
+                        onClick={(e) => { e.stopPropagation(); setLightbox(url); }}
+                        title="Ampliar"
+                      >
+                        <ZoomIn className="h-3 w-3" />
+                      </button>
+                      <Button
+                        variant="ghost" size="icon"
+                        className="h-6 w-6 bg-destructive text-destructive-foreground hover:bg-destructive/80"
+                        onClick={() => handleRemoveImagem(doc.id, ii)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <button
+                      className="absolute left-1 top-1 rounded bg-primary p-0.5 text-primary-foreground hover:bg-primary/80"
+                      onClick={(e) => { e.stopPropagation(); setAnnotating({ docId: doc.id, imgIndex: ii, url }); }}
+                      title="Anotar imagem"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-3 flex justify-center">
+                <Button variant="outline" size="sm" className="gap-1" disabled={uploading === doc.id} asChild>
+                  <label className="cursor-pointer">
+                    <ImagePlus className="h-3.5 w-3.5" />
+                    {uploading === doc.id ? 'Enviando...' : 'Adicionar Ficha'}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUploadImagem(doc.id, e)} />
+                  </label>
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-6 flex justify-center">
+          <Button variant="outline" className="gap-2" onClick={handleAddDoc}>
+            <Plus className="h-4 w-4" />
+            Adicionar Documentação
+          </Button>
+        </div>
       </div>
 
-      <div className="mt-6 flex justify-center">
-        <Button variant="outline" className="gap-2" onClick={handleAddDoc}>
-          <Plus className="h-4 w-4" />
-          Adicionar Documentação
-        </Button>
-      </div>
+      {richText && onRichTextUpdate && (
+        <RichTextEditor
+          content={richText}
+          onUpdate={onRichTextUpdate}
+          placeholder="Conteúdo importado do Word..."
+          minHeight="300px"
+        />
+      )}
 
       {lightbox && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setLightbox(null)}>
