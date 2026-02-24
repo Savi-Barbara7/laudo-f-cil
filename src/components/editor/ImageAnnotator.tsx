@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import * as fabric from 'fabric';
@@ -237,7 +238,7 @@ export function ImageAnnotator({ imageUrl, onSave, onCancel }: ImageAnnotatorPro
     { id: 'freehand', icon: <Pen className="h-4 w-4" />, label: 'Mão livre' },
   ];
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onCancel}>
       <div className="mx-auto w-fit max-h-[95vh] overflow-auto rounded-xl border bg-card shadow-2xl" onClick={(e) => e.stopPropagation()}>
       {/* Header */}
@@ -310,6 +311,7 @@ export function ImageAnnotator({ imageUrl, onSave, onCancel }: ImageAnnotatorPro
         </Button>
       </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
