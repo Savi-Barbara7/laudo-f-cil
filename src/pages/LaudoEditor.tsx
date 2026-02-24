@@ -121,6 +121,8 @@ const LaudoEditor = () => {
                 <CroquiSection
                   images={laudo.croquiImages || []}
                   onUpdate={(croquiImages) => handleUpdate({ croquiImages })}
+                  richText={laudo.croquiRichText || ''}
+                  onRichTextUpdate={(croquiRichText) => handleUpdate({ croquiRichText })}
                 />
               </div>
             )}
@@ -130,6 +132,8 @@ const LaudoEditor = () => {
                 <ARTSection
                   images={laudo.artImages || []}
                   onUpdate={(artImages) => handleUpdate({ artImages })}
+                  richText={laudo.artRichText || ''}
+                  onRichTextUpdate={(artRichText) => handleUpdate({ artRichText })}
                 />
               </div>
             )}
@@ -139,14 +143,18 @@ const LaudoEditor = () => {
                 <DocumentacoesSection
                   documentacoes={laudo.documentacoes || []}
                   onUpdate={(documentacoes) => handleUpdate({ documentacoes })}
+                  richText={laudo.documentacoesRichText || ''}
+                  onRichTextUpdate={(documentacoesRichText) => handleUpdate({ documentacoesRichText })}
                 />
               </div>
             )}
 
             {secaoAtiva === 'conclusao' && (
-              <div id="secao-conclusao" className="a4-page mb-8">
-                <h2 className="mb-6 text-center text-lg font-bold text-primary" style={{ fontFamily: 'Arial, sans-serif' }}>CONCLUSÃO</h2>
-                <p className="text-xs text-muted-foreground">Descreva o conteúdo de cada volume e considerações finais do laudo.</p>
+              <div id="secao-conclusao" className="mb-8">
+                <ConclusaoSection
+                  conclusao={laudo.conclusao || ''}
+                  onUpdate={(conclusao) => handleUpdate({ conclusao })}
+                />
               </div>
             )}
           </div>
