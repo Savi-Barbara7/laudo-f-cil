@@ -11,7 +11,6 @@ import { CroquiSection } from '@/components/editor/CroquiSection';
 import { ARTSection } from '@/components/editor/ARTSection';
 import { DocumentacoesSection } from '@/components/editor/DocumentacoesSection';
 import { ConclusaoSection } from '@/components/editor/ConclusaoSection';
-import { WordImportButton } from '@/components/editor/WordImportButton';
 import { gerarPDF } from '@/lib/pdfGenerator';
 import type { SecaoId, Laudo } from '@/types/laudo';
 import { ZoomIn, ZoomOut } from 'lucide-react';
@@ -61,24 +60,19 @@ const LaudoEditor = () => {
       />
 
       <div className="flex flex-1 overflow-hidden">
-        <EditorSidebar
-          secaoAtiva={secaoAtiva}
-          onSecaoClick={setSecaoAtiva}
-          lindeiros={laudo.lindeiros}
-        />
+        <EditorSidebar secaoAtiva={secaoAtiva} onSecaoClick={setSecaoAtiva} lindeiros={laudo.lindeiros} />
 
         <main className="flex-1 overflow-auto p-8" style={{ background: 'hsl(var(--editor-bg))' }}>
           <div className="mb-4 flex items-center justify-end gap-2">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoom((z) => Math.max(0.3, z - 0.1))}>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoom(z => Math.max(0.3, z - 0.1))}>
               <ZoomOut className="h-4 w-4" />
             </Button>
             <span className="min-w-[4rem] text-center text-sm text-muted-foreground">{Math.round(zoom * 100)}%</span>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoom((z) => Math.min(1.5, z + 0.1))}>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setZoom(z => Math.min(1.5, z + 0.1))}>
               <ZoomIn className="h-4 w-4" />
             </Button>
           </div>
 
-          {/* A4 Preview (zoomed) */}
           <div className="mx-auto" style={{ transform: `scale(${zoom})`, transformOrigin: 'top center', width: '210mm' }}>
             {(secaoAtiva === 'capa' || secaoAtiva === 'indice') && (
               <div id="secao-capa" className="mb-8">
@@ -158,20 +152,6 @@ const LaudoEditor = () => {
               </div>
             )}
           </div>
-
-          {/* Word import buttons (outside zoom for usability) */}
-          {(secaoAtiva === 'croqui' || secaoAtiva === 'art' || secaoAtiva === 'documentacoes' || secaoAtiva === 'conclusao') && (
-            <div className="mx-auto mt-6 flex max-w-4xl justify-center">
-              <WordImportButton
-                onImport={(html) => {
-                  if (secaoAtiva === 'croqui') handleUpdate({ croquiRichText: (laudo.croquiRichText || '') + html });
-                  else if (secaoAtiva === 'art') handleUpdate({ artRichText: (laudo.artRichText || '') + html });
-                  else if (secaoAtiva === 'documentacoes') handleUpdate({ documentacoesRichText: (laudo.documentacoesRichText || '') + html });
-                  else if (secaoAtiva === 'conclusao') handleUpdate({ conclusao: (laudo.conclusao || '') + html });
-                }}
-              />
-            </div>
-          )}
         </main>
       </div>
     </div>

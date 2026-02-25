@@ -75,6 +75,8 @@ export interface Laudo {
   croquiRichText?: string;
   artRichText?: string;
   documentacoesRichText?: string;
+  // DB reference
+  obraId?: string;
 }
 
 export type SecaoId =

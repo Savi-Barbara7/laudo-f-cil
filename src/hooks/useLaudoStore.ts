@@ -1,99 +1,137 @@
 import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import type { Laudo } from '@/types/laudo';
 import { TEXTOS_PADRAO, DADOS_CAPA_PADRAO } from '@/data/defaultTexts';
 
-const STORAGE_KEY = 'lvl-pro-laudos';
-
-function generateId(): string {
-  return crypto.randomUUID();
-}
-
-function loadLaudos(): Laudo[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveLaudosSync(laudos: Laudo[]) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(laudos));
-  } catch (e) {
-    console.warn('localStorage quota exceeded, stripping images and retrying...');
-    // Strip large base64 images to fit in storage
-    const stripped = laudos.map(l => ({
-      ...l,
-      dadosCapa: { ...l.dadosCapa, fotoCapaUrl: undefined },
-      lindeiros: l.lindeiros.map(lin => ({
-        ...lin,
-        ambientes: lin.ambientes.map(amb => ({
-          ...amb,
-          fotos: amb.fotos.map(f => ({ ...f, dataUrl: '' })),
-        })),
-      })),
-    }));
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stripped));
-    } catch {
-      console.error('localStorage still full after stripping images');
-    }
-  }
-}
-
 export function useLaudoStore() {
-  const [laudos, setLaudos] = useState<Laudo[]>(loadLaudos);
+  const { user } = useAuth();
+  const [laudos, setLaudos] = useState<Laudo[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    saveLaudosSync(laudos);
-  }, [laudos]);
+  const fetchLaudos = useCallback(async () => {
+    if (!user) { setLaudos([]); setLoading(false); return; }
+    setLoading(true);
+    const { data, error } = await (supabase
+      .from('laudos') as any)
+      .select('*')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
 
-  const criarLaudo = useCallback((titulo: string = 'Novo Laudo'): string => {
-    const id = generateId();
-    const now = new Date().toISOString();
-    const novo: Laudo = {
-      id,
-      titulo,
-      status: 'rascunho',
-      dadosCapa: { ...DADOS_CAPA_PADRAO },
-      textos: { ...TEXTOS_PADRAO },
-      lindeiros: [],
-      croquiImages: [],
-      artImages: [],
-      documentacoes: [],
-      conclusao: '',
-      obra: '',
-      criadoEm: now,
-      atualizadoEm: now,
-    };
-    const updated = [novo, ...loadLaudos()];
-    saveLaudosSync(updated);
-    setLaudos(updated);
-    return id;
+    if (!error && data) {
+      setLaudos(data.map(rowToLaudo));
+    }
+    setLoading(false);
+  }, [user]);
+
+  useEffect(() => { fetchLaudos(); }, [fetchLaudos]);
+
+  const criarLaudo = useCallback(async (titulo: string = 'Novo Laudo', obraNome?: string): Promise<string> => {
+    if (!user) return '';
+    
+    let obraId: string | null = null;
+    if (obraNome) {
+      // Find or create obra
+      const { data: existing } = await (supabase
+        .from('obras') as any)
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('nome', obraNome)
+        .maybeSingle();
+
+      if (existing) {
+        obraId = existing.id;
+      } else {
+        const { data: newObra } = await (supabase
+          .from('obras') as any)
+          .insert({ user_id: user.id, nome: obraNome })
+          .select('id')
+          .single();
+        if (newObra) obraId = newObra.id;
+      }
+    }
+
+    const { data, error } = await (supabase
+      .from('laudos') as any)
+      .insert({
+        user_id: user.id,
+        obra_id: obraId,
+        titulo,
+        status: 'rascunho',
+        dados_capa: DADOS_CAPA_PADRAO,
+        textos: TEXTOS_PADRAO,
+        lindeiros: [],
+        croqui_images: [],
+        art_images: [],
+        documentacoes: [],
+        conclusao: '',
+        croqui_rich_text: '',
+        art_rich_text: '',
+        documentacoes_rich_text: '',
+      })
+      .select()
+      .single();
+
+    if (error || !data) return '';
+    const novo = rowToLaudo(data);
+    setLaudos(prev => [novo, ...prev]);
+    return data.id;
+  }, [user]);
+
+  const atualizarLaudo = useCallback(async (id: string, updates: Partial<Laudo>) => {
+    const dbUpdates: Record<string, any> = {};
+    if (updates.titulo !== undefined) dbUpdates.titulo = updates.titulo;
+    if (updates.status !== undefined) dbUpdates.status = updates.status;
+    if (updates.dadosCapa !== undefined) dbUpdates.dados_capa = updates.dadosCapa;
+    if (updates.textos !== undefined) dbUpdates.textos = updates.textos;
+    if (updates.lindeiros !== undefined) dbUpdates.lindeiros = updates.lindeiros;
+    if (updates.croquiImages !== undefined) dbUpdates.croqui_images = updates.croquiImages;
+    if (updates.croquiRichText !== undefined) dbUpdates.croqui_rich_text = updates.croquiRichText;
+    if (updates.artImages !== undefined) dbUpdates.art_images = updates.artImages;
+    if (updates.artRichText !== undefined) dbUpdates.art_rich_text = updates.artRichText;
+    if (updates.documentacoes !== undefined) dbUpdates.documentacoes = updates.documentacoes;
+    if (updates.documentacoesRichText !== undefined) dbUpdates.documentacoes_rich_text = updates.documentacoesRichText;
+    if (updates.conclusao !== undefined) dbUpdates.conclusao = updates.conclusao;
+
+    if (Object.keys(dbUpdates).length === 0) return;
+
+    await (supabase.from('laudos') as any).update(dbUpdates).eq('id', id);
+
+    setLaudos(prev => prev.map(l =>
+      l.id === id ? { ...l, ...updates, atualizadoEm: new Date().toISOString() } : l
+    ));
   }, []);
 
-  const atualizarLaudo = useCallback((id: string, updates: Partial<Laudo>) => {
-    setLaudos(prev => {
-      const updated = prev.map(l =>
-        l.id === id ? { ...l, ...updates, atualizadoEm: new Date().toISOString() } : l
-      );
-      saveLaudosSync(updated);
-      return updated;
-    });
-  }, []);
-
-  const removerLaudo = useCallback((id: string) => {
-    setLaudos(prev => {
-      const updated = prev.filter(l => l.id !== id);
-      saveLaudosSync(updated);
-      return updated;
-    });
+  const removerLaudo = useCallback(async (id: string) => {
+    await (supabase.from('laudos') as any).delete().eq('id', id);
+    setLaudos(prev => prev.filter(l => l.id !== id));
   }, []);
 
   const getLaudo = useCallback((id: string): Laudo | undefined => {
-    return loadLaudos().find(l => l.id === id);
-  }, []);
+    return laudos.find(l => l.id === id);
+  }, [laudos]);
 
-  return { laudos, criarLaudo, atualizarLaudo, removerLaudo, getLaudo };
+  return { laudos, loading, criarLaudo, atualizarLaudo, removerLaudo, getLaudo };
+}
+
+function rowToLaudo(row: any): Laudo {
+  return {
+    id: row.id,
+    titulo: row.titulo,
+    status: row.status,
+    dadosCapa: row.dados_capa || DADOS_CAPA_PADRAO,
+    textos: row.textos || {},
+    lindeiros: row.lindeiros || [],
+    croquiImages: row.croqui_images || [],
+    artImages: row.art_images || [],
+    documentacoes: row.documentacoes || [],
+    conclusao: row.conclusao || '',
+    obra: '', // resolved via obra_id join later
+    criadoEm: row.created_at,
+    atualizadoEm: row.updated_at,
+    croquiRichText: row.croqui_rich_text || '',
+    artRichText: row.art_rich_text || '',
+    documentacoesRichText: row.documentacoes_rich_text || '',
+    obraId: row.obra_id,
+  };
 }
