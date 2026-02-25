@@ -14,7 +14,125 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      laudos: {
+        Row: {
+          art_images: Json
+          art_rich_text: string | null
+          conclusao: string | null
+          created_at: string
+          croqui_images: Json
+          croqui_rich_text: string | null
+          dados_capa: Json
+          documentacoes: Json
+          documentacoes_rich_text: string | null
+          id: string
+          lindeiros: Json
+          obra_id: string | null
+          status: string
+          textos: Json
+          titulo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          art_images?: Json
+          art_rich_text?: string | null
+          conclusao?: string | null
+          created_at?: string
+          croqui_images?: Json
+          croqui_rich_text?: string | null
+          dados_capa?: Json
+          documentacoes?: Json
+          documentacoes_rich_text?: string | null
+          id?: string
+          lindeiros?: Json
+          obra_id?: string | null
+          status?: string
+          textos?: Json
+          titulo?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          art_images?: Json
+          art_rich_text?: string | null
+          conclusao?: string | null
+          created_at?: string
+          croqui_images?: Json
+          croqui_rich_text?: string | null
+          dados_capa?: Json
+          documentacoes?: Json
+          documentacoes_rich_text?: string | null
+          id?: string
+          lindeiros?: Json
+          obra_id?: string | null
+          status?: string
+          textos?: Json
+          titulo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "laudos_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      obras: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          cargo: string | null
+          created_at: string
+          empresa: string | null
+          id: string
+          nome: string | null
+          updated_at: string
+        }
+        Insert: {
+          cargo?: string | null
+          created_at?: string
+          empresa?: string | null
+          id: string
+          nome?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cargo?: string | null
+          created_at?: string
+          empresa?: string | null
+          id?: string
+          nome?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

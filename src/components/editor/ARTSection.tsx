@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, FileCheck, ZoomIn, Pencil } from 'lucide-react';
+import { Plus, Trash2, ZoomIn, Pencil } from 'lucide-react';
 import { uploadImage } from '@/lib/storageHelper';
 import { toast } from '@/hooks/use-toast';
 import { ImageAnnotator } from './ImageAnnotator';
@@ -29,14 +29,7 @@ export function ARTSection({ images, onUpdate, richText, onRichTextUpdate }: ART
       toast({ title: 'ART adicionada!' });
     } catch (err) {
       toast({ title: 'Erro ao enviar', description: String(err), variant: 'destructive' });
-    } finally {
-      setUploading(false);
-      e.target.value = '';
-    }
-  };
-
-  const handleRemove = (index: number) => {
-    onUpdate(images.filter((_, i) => i !== index));
+    } finally { setUploading(false); e.target.value = ''; }
   };
 
   return (
@@ -46,49 +39,19 @@ export function ARTSection({ images, onUpdate, richText, onRichTextUpdate }: ART
           ART - ANOTAÇÃO DE RESPONSABILIDADE TÉCNICA
         </h2>
 
-        {images.length === 0 && !richText && (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <FileCheck className="mb-4 h-16 w-16 text-muted-foreground/40" />
-            <p className="mb-4 text-muted-foreground">
-              Anexe imagens da ART ou importe um arquivo Word
-            </p>
-          </div>
-        )}
-
         <div className="space-y-4">
           {images.map((url, i) => (
             <div key={i} className="relative rounded-lg border p-3">
               <div className="relative">
-                <img
-                  src={url}
-                  alt={`ART ${i + 1}`}
-                  className="w-full cursor-pointer rounded object-contain"
-                  style={{ maxHeight: '500px' }}
-                  onClick={() => setAnnotatingIndex(i)}
-                  title="Clique para editar/anotar"
-                />
+                <img src={url} alt={`ART ${i + 1}`} className="w-full cursor-pointer rounded object-contain" style={{ maxHeight: '500px' }} onClick={() => setAnnotatingIndex(i)} title="Clique para editar/anotar" />
                 <div className="absolute right-2 top-2 flex gap-1">
-                  <button
-                    className="flex h-7 w-7 items-center justify-center rounded bg-black/60 text-white hover:bg-black/80"
-                    onClick={(e) => { e.stopPropagation(); setLightbox(url); }}
-                    title="Ampliar"
-                  >
-                    <ZoomIn className="h-4 w-4" />
-                  </button>
+                  <button className="flex h-7 w-7 items-center justify-center rounded bg-black/60 text-white hover:bg-black/80" onClick={e => { e.stopPropagation(); setLightbox(url); }} title="Ampliar"><ZoomIn className="h-4 w-4" /></button>
                 </div>
-                <button
-                  className="absolute left-2 top-2 rounded bg-primary p-1 text-primary-foreground hover:bg-primary/80"
-                  onClick={(e) => { e.stopPropagation(); setAnnotatingIndex(i); }}
-                  title="Anotar imagem"
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
+                <button className="absolute left-2 top-2 rounded bg-primary p-1 text-primary-foreground hover:bg-primary/80" onClick={e => { e.stopPropagation(); setAnnotatingIndex(i); }} title="Anotar"><Pencil className="h-4 w-4" /></button>
               </div>
-              <div className="mt-2 flex justify-between items-center">
+              <div className="mt-2 flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">ART - Página {i + 1}</span>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleRemove(i)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onUpdate(images.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
           ))}
@@ -105,12 +68,12 @@ export function ARTSection({ images, onUpdate, richText, onRichTextUpdate }: ART
         </div>
       </div>
 
-      {/* Rich text from Word import */}
-      {richText && onRichTextUpdate && (
+      {/* Always show RichTextEditor */}
+      {onRichTextUpdate && (
         <RichTextEditor
-          content={richText}
+          content={richText || ''}
           onUpdate={onRichTextUpdate}
-          placeholder="Conteúdo importado do Word..."
+          placeholder="Descreva a ART ou importe um arquivo Word..."
           minHeight="300px"
         />
       )}
@@ -122,14 +85,7 @@ export function ARTSection({ images, onUpdate, richText, onRichTextUpdate }: ART
       )}
 
       {annotatingIndex !== null && images[annotatingIndex] && (
-        <ImageAnnotator
-          imageUrl={images[annotatingIndex]}
-          onCancel={() => setAnnotatingIndex(null)}
-          onSave={(dataUrl) => {
-            onUpdate(images.map((url, i) => i === annotatingIndex ? dataUrl : url));
-            setAnnotatingIndex(null);
-          }}
-        />
+        <ImageAnnotator imageUrl={images[annotatingIndex]} onCancel={() => setAnnotatingIndex(null)} onSave={(dataUrl) => { onUpdate(images.map((u, i) => i === annotatingIndex ? dataUrl : u)); setAnnotatingIndex(null); }} />
       )}
     </div>
   );
