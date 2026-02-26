@@ -98,5 +98,6 @@ export const SECOES_NAVEGAVEIS: SecaoNavegavel[] = [
   { id: 'croqui', label: 'VIII. Croqui' },
   { id: 'art', label: 'IX. ART' },
   { id: 'documentacoes', label: 'X. Documentações' },
-  { id: 'conclusao', label: 'XI. Conclusão' },
+  { id: 'fichas', label: 'XI. Fichas' },
+  { id: 'conclusao', label: 'XII. Conclusão' },
 ];

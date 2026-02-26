@@ -10,6 +10,7 @@ import { LindeirosSection } from '@/components/editor/LindeirosSection';
 import { CroquiSection } from '@/components/editor/CroquiSection';
 import { ARTSection } from '@/components/editor/ARTSection';
 import { DocumentacoesSection } from '@/components/editor/DocumentacoesSection';
+import { FichasSection } from '@/components/editor/FichasSection';
 import { ConclusaoSection } from '@/components/editor/ConclusaoSection';
 import { gerarPDF } from '@/lib/pdfGenerator';
 import type { SecaoId, Laudo } from '@/types/laudo';
@@ -139,6 +140,17 @@ const LaudoEditor = () => {
                   onUpdate={(documentacoes) => handleUpdate({ documentacoes })}
                   richText={laudo.documentacoesRichText || ''}
                   onRichTextUpdate={(documentacoesRichText) => handleUpdate({ documentacoesRichText })}
+                />
+              </div>
+            )}
+
+            {secaoAtiva === 'fichas' && (
+              <div id="secao-fichas" className="mb-8">
+                <FichasSection
+                  fichas={laudo.fichas || []}
+                  onUpdate={(fichas) => handleUpdate({ fichas })}
+                  richText={laudo.fichasRichText || ''}
+                  onRichTextUpdate={(fichasRichText) => handleUpdate({ fichasRichText })}
                 />
               </div>
             )}

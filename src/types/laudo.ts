@@ -67,6 +67,7 @@ export interface Laudo {
   croquiImages: CroquiImage[];
   artImages: string[];
   documentacoes: Documentacao[];
+  fichas: Documentacao[];
   conclusao: string;
   obra: string;
   criadoEm: string;
@@ -75,6 +76,7 @@ export interface Laudo {
   croquiRichText?: string;
   artRichText?: string;
   documentacoesRichText?: string;
+  fichasRichText?: string;
   // DB reference
   obraId?: string;
 }
@@ -92,6 +94,7 @@ export type SecaoId =
   | 'croqui'
   | 'art'
   | 'documentacoes'
+  | 'fichas'
   | 'conclusao';
 
 export interface SecaoNavegavel {
