@@ -31,7 +31,6 @@ export function useLaudoStore() {
     
     let obraId: string | null = null;
     if (obraNome) {
-      // Find or create obra
       const { data: existing } = await (supabase
         .from('obras') as any)
         .select('id')
@@ -64,10 +63,12 @@ export function useLaudoStore() {
         croqui_images: [],
         art_images: [],
         documentacoes: [],
+        fichas: [],
         conclusao: '',
         croqui_rich_text: '',
         art_rich_text: '',
         documentacoes_rich_text: '',
+        fichas_rich_text: '',
       })
       .select()
       .single();
@@ -77,6 +78,40 @@ export function useLaudoStore() {
     setLaudos(prev => [novo, ...prev]);
     return data.id;
   }, [user]);
+
+  const duplicarLaudo = useCallback(async (id: string): Promise<string> => {
+    if (!user) return '';
+    const original = laudos.find(l => l.id === id);
+    if (!original) return '';
+
+    const { data, error } = await (supabase
+      .from('laudos') as any)
+      .insert({
+        user_id: user.id,
+        obra_id: (original as any).obraId || null,
+        titulo: `${original.titulo} (cópia)`,
+        status: 'rascunho',
+        dados_capa: original.dadosCapa,
+        textos: original.textos,
+        lindeiros: original.lindeiros,
+        croqui_images: original.croquiImages,
+        art_images: original.artImages,
+        documentacoes: original.documentacoes,
+        fichas: original.fichas || [],
+        conclusao: original.conclusao,
+        croqui_rich_text: original.croquiRichText || '',
+        art_rich_text: original.artRichText || '',
+        documentacoes_rich_text: original.documentacoesRichText || '',
+        fichas_rich_text: original.fichasRichText || '',
+      })
+      .select()
+      .single();
+
+    if (error || !data) return '';
+    const novo = rowToLaudo(data);
+    setLaudos(prev => [novo, ...prev]);
+    return data.id;
+  }, [user, laudos]);
 
   const atualizarLaudo = useCallback(async (id: string, updates: Partial<Laudo>) => {
     const dbUpdates: Record<string, any> = {};
@@ -91,6 +126,8 @@ export function useLaudoStore() {
     if (updates.artRichText !== undefined) dbUpdates.art_rich_text = updates.artRichText;
     if (updates.documentacoes !== undefined) dbUpdates.documentacoes = updates.documentacoes;
     if (updates.documentacoesRichText !== undefined) dbUpdates.documentacoes_rich_text = updates.documentacoesRichText;
+    if (updates.fichas !== undefined) dbUpdates.fichas = updates.fichas;
+    if (updates.fichasRichText !== undefined) dbUpdates.fichas_rich_text = updates.fichasRichText;
     if (updates.conclusao !== undefined) dbUpdates.conclusao = updates.conclusao;
 
     if (Object.keys(dbUpdates).length === 0) return;
@@ -111,7 +148,7 @@ export function useLaudoStore() {
     return laudos.find(l => l.id === id);
   }, [laudos]);
 
-  return { laudos, loading, criarLaudo, atualizarLaudo, removerLaudo, getLaudo };
+  return { laudos, loading, criarLaudo, duplicarLaudo, atualizarLaudo, removerLaudo, getLaudo };
 }
 
 function rowToLaudo(row: any): Laudo {
@@ -125,13 +162,15 @@ function rowToLaudo(row: any): Laudo {
     croquiImages: row.croqui_images || [],
     artImages: row.art_images || [],
     documentacoes: row.documentacoes || [],
+    fichas: row.fichas || [],
     conclusao: row.conclusao || '',
-    obra: '', // resolved via obra_id join later
+    obra: '',
     criadoEm: row.created_at,
     atualizadoEm: row.updated_at,
     croquiRichText: row.croqui_rich_text || '',
     artRichText: row.art_rich_text || '',
     documentacoesRichText: row.documentacoes_rich_text || '',
+    fichasRichText: row.fichas_rich_text || '',
     obraId: row.obra_id,
   };
 }

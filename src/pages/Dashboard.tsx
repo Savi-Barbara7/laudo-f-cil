@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, FileText, Trash2, ChevronRight, ChevronDown, CheckCircle, Clock, MapPin, Shield, FolderOpen, Folder, LogOut, Loader2 } from 'lucide-react';
+import { Plus, FileText, Trash2, ChevronRight, ChevronDown, CheckCircle, Clock, MapPin, Shield, FolderOpen, Folder, LogOut, Loader2, Copy } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 type Periodo = 'este-mes' | 'ultimo-mes' | '3-meses' | 'este-ano' | 'todos';
 
@@ -33,7 +34,7 @@ function filtroPeriodo(dateStr: string, periodo: Periodo): boolean {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
-  const { laudos, loading, criarLaudo, removerLaudo } = useLaudoStore();
+  const { laudos, loading, criarLaudo, removerLaudo, duplicarLaudo } = useLaudoStore();
   const [novoDialogOpen, setNovoDialogOpen] = useState(false);
   const [novoTitulo, setNovoTitulo] = useState('Novo Laudo Cautelar');
   const [novaObra, setNovaObra] = useState('');
@@ -55,6 +56,15 @@ const Dashboard = () => {
     if (id) navigate(`/laudos/${id}/editor`);
   };
 
+  const handleDuplicar = async (laudoId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newId = await duplicarLaudo(laudoId);
+    if (newId) {
+      toast({ title: 'Laudo duplicado!', description: 'O laudo foi copiado como rascunho.' });
+      navigate(`/laudos/${newId}/editor`);
+    }
+  };
+
   const laudosFiltrados = useMemo(() => laudos.filter(l => filtroPeriodo(l.criadoEm, periodo)), [laudos, periodo]);
 
   const metricas = useMemo(() => {
@@ -63,18 +73,19 @@ const Dashboard = () => {
     return { total, finalizados, rascunhos: total - finalizados, lindeirosTotal: laudosFiltrados.reduce((a, l) => a + l.lindeiros.length, 0) };
   }, [laudosFiltrados]);
 
-  // Group laudos by obra_id
   const grouped = useMemo(() => {
     const map: Record<string, typeof laudos> = {};
     laudosFiltrados.forEach(l => {
-      const key = (l as any).obraId || 'sem-obra';
+      const key = l.obraId || 'sem-obra';
       if (!map[key]) map[key] = [];
       map[key].push(l);
     });
     return map;
   }, [laudosFiltrados]);
 
-  const toggleObra = (id: string) => {
+  const toggleObra = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setExpandedObras(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
@@ -83,14 +94,13 @@ const Dashboard = () => {
   };
 
   const obraKeys = useMemo(() => {
-    const keys = Object.keys(grouped).sort((a, b) => {
+    return Object.keys(grouped).sort((a, b) => {
       if (a === 'sem-obra') return 1;
       if (b === 'sem-obra') return -1;
       const na = obras.find(o => o.id === a)?.nome || a;
       const nb = obras.find(o => o.id === b)?.nome || b;
       return na.localeCompare(nb);
     });
-    return keys;
   }, [grouped, obras]);
 
   const metricCards = [
@@ -200,10 +210,9 @@ const Dashboard = () => {
 
                 return (
                   <div key={obraKey}>
-                    {/* Folder row */}
                     <button
                       className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-muted/60"
-                      onClick={() => toggleObra(obraKey)}
+                      onClick={(e) => toggleObra(obraKey, e)}
                     >
                       {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                       {isExpanded ? <FolderOpen className="h-5 w-5 text-primary" /> : <Folder className="h-5 w-5 text-primary" />}
@@ -211,7 +220,6 @@ const Dashboard = () => {
                       <Badge variant="secondary" className="font-normal text-xs">{obraLaudos.length}</Badge>
                     </button>
 
-                    {/* Laudo sub-items */}
                     {isExpanded && (
                       <div className="ml-6 border-l border-muted pl-4">
                         {obraLaudos.map(laudo => (
@@ -233,6 +241,14 @@ const Dashboard = () => {
                             >
                               {laudo.status === 'finalizado' ? 'Finalizado' : 'Rascunho'}
                             </Badge>
+                            <Button
+                              variant="ghost" size="icon"
+                              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                              onClick={(e) => handleDuplicar(laudo.id, e)}
+                              title="Duplicar laudo"
+                            >
+                              <Copy className="h-3.5 w-3.5" />
+                            </Button>
                             <Button
                               variant="ghost" size="icon"
                               className="h-7 w-7 shrink-0 text-destructive/60 hover:text-destructive hover:bg-destructive/10"

@@ -25,6 +25,8 @@ export type Database = {
           dados_capa: Json
           documentacoes: Json
           documentacoes_rich_text: string | null
+          fichas: Json | null
+          fichas_rich_text: string | null
           id: string
           lindeiros: Json
           obra_id: string | null
@@ -44,6 +46,8 @@ export type Database = {
           dados_capa?: Json
           documentacoes?: Json
           documentacoes_rich_text?: string | null
+          fichas?: Json | null
+          fichas_rich_text?: string | null
           id?: string
           lindeiros?: Json
           obra_id?: string | null
@@ -63,6 +67,8 @@ export type Database = {
           dados_capa?: Json
           documentacoes?: Json
           documentacoes_rich_text?: string | null
+          fichas?: Json | null
+          fichas_rich_text?: string | null
           id?: string
           lindeiros?: Json
           obra_id?: string | null
