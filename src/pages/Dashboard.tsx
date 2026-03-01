@@ -46,7 +46,7 @@ const Dashboard = () => {
     (supabase.from('obras') as any).select('id, nome').then(({ data }: any) => {
       if (data) setObras(data);
     });
-  }, [laudos]);
+  }, []); // Only fetch obras once on mount
 
   const handleCriarLaudo = async () => {
     const id = await criarLaudo(novoTitulo || 'Novo Laudo Cautelar', novaObra || undefined);
