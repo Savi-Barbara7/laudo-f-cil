@@ -1,19 +1,30 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Download, Loader2, Shield, Save } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, FileText, Save, Cloud, CloudOff } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface EditorToolbarProps {
   titulo: string;
+  status?: string;
   onTituloChange: (titulo: string) => void;
   onVoltar: () => void;
   onExportPDF?: () => Promise<void>;
 }
 
-export function EditorToolbar({ titulo, onTituloChange, onVoltar, onExportPDF }: EditorToolbarProps) {
+const STATUS_BADGE: Record<string, string> = {
+  rascunho: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  finalizado: 'bg-green-100 text-green-800 border-green-200',
+};
+const STATUS_LABEL: Record<string, string> = {
+  rascunho: 'Rascunho',
+  finalizado: 'Finalizado',
+};
+
+export function EditorToolbar({ titulo, status = 'rascunho', onTituloChange, onVoltar, onExportPDF }: EditorToolbarProps) {
   const [exporting, setExporting] = useState(false);
-  const [saved, setSaved] = useState(true);
+  const [saveState, setSaveState] = useState<'saved' | 'saving' | 'idle'>('saved');
 
   const handleExport = async () => {
     if (!onExportPDF) return;
@@ -25,59 +36,78 @@ export function EditorToolbar({ titulo, onTituloChange, onVoltar, onExportPDF }:
     }
   };
 
+  const handleTituloChange = (v: string) => {
+    onTituloChange(v);
+    setSaveState('saving');
+    setTimeout(() => setSaveState('saved'), 1800);
+  };
+
   return (
-    <header className="flex h-12 items-center gap-2 border-b border-border bg-card px-4 shadow-sm shrink-0">
+    <header className="flex h-12 items-center gap-3 border-b border-border bg-card px-4 shrink-0">
       {/* Back */}
-      <Button
-        variant="ghost"
-        size="icon"
+      <button
         onClick={onVoltar}
-        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+        className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-xs transition-colors"
       >
-        <ArrowLeft className="h-4 w-4" />
-      </Button>
+        <ArrowLeft size={14} />
+        <span className="hidden sm:inline">Meus Laudos</span>
+      </button>
+
+      <div className="h-4 w-px bg-border shrink-0" />
 
       {/* Brand */}
       <div className="flex items-center gap-2 shrink-0">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary shadow-sm">
-          <Shield className="h-3.5 w-3.5 text-primary-foreground" />
+        <div className="w-6 h-6 rounded-lg bg-primary flex items-center justify-center">
+          <FileText size={12} className="text-primary-foreground" />
         </div>
-        <span className="hidden text-[13px] font-bold tracking-tight text-foreground sm:block">LVL PRO</span>
+        <span className="hidden text-[13px] font-bold tracking-tight text-foreground sm:block">LVL Pro</span>
       </div>
 
-      <div className="h-5 w-px bg-border shrink-0" />
+      <div className="h-4 w-px bg-border shrink-0" />
 
       {/* Title input */}
       <Input
         value={titulo}
-        onChange={(e) => { onTituloChange(e.target.value); setSaved(false); setTimeout(() => setSaved(true), 2000); }}
-        className="h-8 flex-1 max-w-sm border-none bg-transparent text-sm font-medium shadow-none focus-visible:ring-1 focus-visible:ring-primary/30"
+        onChange={e => handleTituloChange(e.target.value)}
+        className="h-8 flex-1 max-w-sm border-none bg-transparent text-sm font-medium shadow-none focus-visible:ring-1 focus-visible:ring-primary/30 px-1"
         placeholder="Título do laudo"
       />
 
       <div className="flex-1" />
 
-      {/* Auto-save indicator */}
+      {/* Status badge */}
+      {status && (
+        <Badge
+          variant="outline"
+          className={cn('text-xs border hidden sm:inline-flex', STATUS_BADGE[status] ?? STATUS_BADGE.rascunho)}
+        >
+          {STATUS_LABEL[status] ?? status}
+        </Badge>
+      )}
+
+      {/* Save indicator */}
       <div className={cn(
-        'hidden items-center gap-1.5 text-xs transition-opacity sm:flex',
-        saved ? 'text-muted-foreground opacity-70' : 'text-warning opacity-100'
+        'hidden items-center gap-1.5 text-xs transition-all sm:flex',
+        saveState === 'saving' ? 'text-warning' : 'text-muted-foreground opacity-60'
       )}>
-        <Save className="h-3.5 w-3.5" />
-        <span>{saved ? 'Salvo' : 'Salvando...'}</span>
+        {saveState === 'saving'
+          ? <><Loader2 size={12} className="animate-spin" /> Salvando...</>
+          : <><Cloud size={12} /> Salvo</>
+        }
       </div>
 
-      {/* Export */}
+      {/* Export PDF */}
       {onExportPDF && (
         <Button
           variant="default"
           size="sm"
           onClick={handleExport}
           disabled={exporting}
-          className="gap-2 h-8 shadow-sm"
+          className="gap-2 h-8"
         >
           {exporting
-            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            : <Download className="h-3.5 w-3.5" />}
+            ? <Loader2 size={13} className="animate-spin" />
+            : <Download size={13} />}
           {exporting ? 'Gerando...' : 'Exportar PDF'}
         </Button>
       )}

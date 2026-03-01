@@ -4,20 +4,38 @@ import { useLaudoStore } from '@/hooks/useLaudoStore';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
-  Plus, FileText, Trash2, ChevronRight, ChevronDown,
-  CheckCircle, Clock, MapPin, Shield, FolderOpen, Folder,
-  LogOut, Loader2, Copy, BarChart3
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Plus, FileText, Trash2, Copy, Search, Settings,
+  CheckCircle2, Clock, RefreshCw, Layers, FolderOpen,
+  ChevronDown, LogOut, Loader2, MapPin,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
+type TabStatus = 'todos' | 'rascunho' | 'finalizado';
 type Periodo = 'este-mes' | 'ultimo-mes' | '3-meses' | 'este-ano' | 'todos';
 interface ObraRow { id: string; nome: string }
+
+const STATUS_LABELS: Record<string, string> = {
+  rascunho: 'Rascunho',
+  finalizado: 'Finalizado',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  rascunho: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  finalizado: 'bg-green-100 text-green-800 border-green-200',
+};
 
 function filtroPeriodo(dateStr: string, periodo: Periodo): boolean {
   if (periodo === 'todos') return true;
@@ -37,12 +55,14 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const { laudos, loading, criarLaudo, removerLaudo, duplicarLaudo } = useLaudoStore();
+  const [tab, setTab] = useState<TabStatus>('todos');
+  const [search, setSearch] = useState('');
+  const [periodo, setPeriodo] = useState<Periodo>('todos');
   const [novoDialogOpen, setNovoDialogOpen] = useState(false);
   const [novoTitulo, setNovoTitulo] = useState('Novo Laudo Cautelar');
   const [novaObra, setNovaObra] = useState('');
-  const [periodo, setPeriodo] = useState<Periodo>('todos');
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [obras, setObras] = useState<ObraRow[]>([]);
-  const [expandedObras, setExpandedObras] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     (supabase.from('obras') as any).select('id, nome').then(({ data }: any) => {
@@ -62,281 +82,302 @@ const Dashboard = () => {
     e.stopPropagation();
     const newId = await duplicarLaudo(laudoId);
     if (newId) {
-      toast({ title: 'Laudo duplicado!', description: 'O laudo foi copiado como rascunho.' });
+      toast({ title: 'Laudo duplicado!' });
       navigate(`/laudos/${newId}/editor`);
     }
   };
 
-  const laudosFiltrados = useMemo(() => laudos.filter(l => filtroPeriodo(l.criadoEm, periodo)), [laudos, periodo]);
+  const laudosFiltrados = useMemo(() => {
+    return laudos
+      .filter(l => filtroPeriodo(l.criadoEm, periodo))
+      .filter(l => tab === 'todos' || l.status === tab)
+      .filter(l => {
+        if (!search) return true;
+        const q = search.toLowerCase();
+        const obraNome = obras.find(o => o.id === l.obraId)?.nome ?? '';
+        return l.titulo.toLowerCase().includes(q) || obraNome.toLowerCase().includes(q);
+      });
+  }, [laudos, tab, search, periodo, obras]);
 
-  const metricas = useMemo(() => {
-    const total = laudosFiltrados.length;
-    const finalizados = laudosFiltrados.filter(l => l.status === 'finalizado').length;
-    return {
-      total,
-      finalizados,
-      rascunhos: total - finalizados,
-      lindeirosTotal: laudosFiltrados.reduce((a, l) => a + l.lindeiros.length, 0),
-    };
-  }, [laudosFiltrados]);
-
-  const grouped = useMemo(() => {
-    const map: Record<string, typeof laudos> = {};
-    laudosFiltrados.forEach(l => {
-      const key = l.obraId || 'sem-obra';
-      if (!map[key]) map[key] = [];
-      map[key].push(l);
-    });
-    return map;
-  }, [laudosFiltrados]);
-
-  const toggleObra = (id: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setExpandedObras(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  const countByStatus = (s: TabStatus) => {
+    if (s === 'todos') return laudos.length;
+    return laudos.filter(l => l.status === s).length;
   };
 
-  const obraKeys = useMemo(() => {
-    return Object.keys(grouped).sort((a, b) => {
-      if (a === 'sem-obra') return 1;
-      if (b === 'sem-obra') return -1;
-      const na = obras.find(o => o.id === a)?.nome || a;
-      const nb = obras.find(o => o.id === b)?.nome || b;
-      return na.localeCompare(nb);
-    });
-  }, [grouped, obras]);
+  const metricas = useMemo(() => ({
+    total: laudos.length,
+    finalizados: laudos.filter(l => l.status === 'finalizado').length,
+    rascunhos: laudos.filter(l => l.status !== 'finalizado').length,
+    lindeiros: laudos.reduce((a, l) => a + l.lindeiros.length, 0),
+  }), [laudos]);
+
+  const TABS: { key: TabStatus; label: string; icon: React.ReactNode }[] = [
+    { key: 'todos', label: 'Todos', icon: <Layers size={14} /> },
+    { key: 'rascunho', label: 'Rascunho', icon: <Clock size={14} /> },
+    { key: 'finalizado', label: 'Finalizado', icon: <CheckCircle2 size={14} /> },
+  ];
+
+  const PERIODOS: { value: Periodo; label: string }[] = [
+    { value: 'este-mes', label: 'Este mês' },
+    { value: 'ultimo-mes', label: 'Último mês' },
+    { value: '3-meses', label: 'Últimos 3 meses' },
+    { value: 'este-ano', label: 'Este ano' },
+    { value: 'todos', label: 'Todos os períodos' },
+  ];
 
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-lg">
-            <Shield className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Carregando laudos...</p>
         </div>
       </div>
     );
   }
 
-  const metricCards = [
-    { label: 'Total no Período', value: metricas.total, icon: BarChart3, accent: 'bg-primary/10 text-primary', border: 'border-border' },
-    { label: 'Finalizados', value: metricas.finalizados, icon: CheckCircle, accent: 'bg-success/10 text-success', border: 'border-border' },
-    { label: 'Em Andamento', value: metricas.rascunhos, icon: Clock, accent: 'bg-warning/10 text-warning', border: 'border-border' },
-    { label: 'Lindeiros', value: metricas.lindeirosTotal, icon: MapPin, accent: 'bg-secondary text-secondary-foreground', border: 'border-border' },
-  ];
-
   return (
-    <div className="min-h-screen bg-muted/40">
+    <div className="min-h-screen bg-background">
       {/* ── Header ─────────────────────────────────────────── */}
-      <header className="sticky top-0 z-30 border-b border-border bg-card shadow-sm">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary shadow-sm">
-              <Shield className="h-4.5 w-4.5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-[17px] font-bold tracking-tight text-foreground">LVL PRO</h1>
-              <p className="text-[11px] text-muted-foreground">Laudos Técnicos de Vistoria</p>
-            </div>
+      <header className="border-b border-border bg-card px-6 py-4 flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+            <FileText size={16} className="text-primary-foreground" />
           </div>
-
-          <div className="flex items-center gap-2">
-            <Dialog open={novoDialogOpen} onOpenChange={setNovoDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="gap-2 shadow-sm">
-                  <Plus className="h-4 w-4" /> Novo Laudo
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="text-base">Criar Novo Laudo</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Título do Laudo</Label>
-                    <Input value={novoTitulo} onChange={e => setNovoTitulo(e.target.value)} placeholder="Novo Laudo Cautelar" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Nome da Obra</Label>
-                    <Input value={novaObra} onChange={e => setNovaObra(e.target.value)} placeholder="Ex: Residencial Vila Nova" />
-                    <p className="text-xs text-muted-foreground">Laudos da mesma obra ficam agrupados</p>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" size="sm" onClick={() => setNovoDialogOpen(false)}>Cancelar</Button>
-                  <Button size="sm" onClick={handleCriarLaudo}>Criar Laudo</Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            <Button variant="ghost" size="icon" onClick={signOut} className="h-9 w-9 text-muted-foreground hover:text-foreground" title="Sair">
-              <LogOut className="h-4 w-4" />
-            </Button>
+          <div>
+            <h1 className="font-bold text-foreground text-lg leading-none">LVL Pro</h1>
+            <p className="text-xs text-muted-foreground">Laudos de Vistoria de Lindeiros</p>
           </div>
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={signOut} className="gap-2 text-muted-foreground">
+            <LogOut size={15} />
+            Sair
+          </Button>
+          <Button onClick={() => setNovoDialogOpen(true)} className="gap-2">
+            <Plus size={15} />
+            Novo Laudo
+          </Button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-8 animate-fade-in">
-        {/* ── Period filter ───────────────────────────────── */}
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Visão Geral</h2>
-            <p className="text-sm text-muted-foreground">Acompanhe e gerencie seus laudos</p>
-          </div>
-          <Select value={periodo} onValueChange={v => setPeriodo(v as Periodo)}>
-            <SelectTrigger className="w-[160px] h-8 text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="este-mes">Este mês</SelectItem>
-              <SelectItem value="ultimo-mes">Último mês</SelectItem>
-              <SelectItem value="3-meses">Últimos 3 meses</SelectItem>
-              <SelectItem value="este-ano">Este ano</SelectItem>
-              <SelectItem value="todos">Todos</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* ── Metrics ─────────────────────────────────────── */}
-        <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {metricCards.map(m => (
-            <div key={m.label} className={`rounded-xl border bg-card p-5 shadow-sm transition-shadow hover:shadow-md ${m.border}`}>
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-medium text-muted-foreground">{m.label}</span>
-                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${m.accent}`}>
-                  <m.icon className="h-4 w-4" />
+      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+        {/* ── Quick stats ─────────────────────────────────── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Total', val: metricas.total, icon: <Layers size={16} className="text-primary" />, bg: 'bg-primary/10' },
+            { label: 'Finalizados', val: metricas.finalizados, icon: <CheckCircle2 size={16} className="text-success" />, bg: 'bg-success/10' },
+            { label: 'Em Andamento', val: metricas.rascunhos, icon: <Clock size={16} className="text-warning" />, bg: 'bg-warning/10' },
+            { label: 'Lindeiros', val: metricas.lindeiros, icon: <MapPin size={16} className="text-accent" />, bg: 'bg-accent/10' },
+          ].map(s => (
+            <div key={s.label} className="rounded-xl border border-border bg-card p-4 hover:shadow-sm transition-shadow">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{s.label}</span>
+                <div className={`w-8 h-8 rounded-lg ${s.bg} flex items-center justify-center`}>
+                  {s.icon}
                 </div>
               </div>
-              <p className="text-3xl font-bold text-foreground">{m.value}</p>
+              <p className="text-2xl font-bold text-foreground">{s.val}</p>
             </div>
           ))}
         </div>
 
-        {/* ── Content ─────────────────────────────────────── */}
-        {laudos.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border bg-card py-20 text-center shadow-sm">
-            <div className="flex flex-col items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-                <FileText className="h-8 w-8 text-muted-foreground/50" />
-              </div>
-              <div>
-                <h2 className="mb-1 text-base font-semibold text-foreground">Nenhum laudo criado</h2>
-                <p className="text-sm text-muted-foreground">Clique em "Novo Laudo" para começar</p>
-              </div>
-              <Button onClick={() => setNovoDialogOpen(true)} size="sm" className="mt-2 gap-2">
-                <Plus className="h-4 w-4" /> Novo Laudo
+        {/* ── Filters ─────────────────────────────────────── */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Status tabs */}
+          <div className="flex bg-muted rounded-lg p-1 gap-1">
+            {TABS.map(t => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  tab === t.key
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {t.icon}
+                {t.label}
+                <span className="ml-1 tabular-nums opacity-70">({countByStatus(t.key)})</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Period filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8">
+                {PERIODOS.find(p => p.value === periodo)?.label ?? 'Período'}
+                <ChevronDown size={12} />
               </Button>
-            </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {PERIODOS.map(p => (
+                <DropdownMenuItem key={p.value} onClick={() => setPeriodo(p.value)}>
+                  {p.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Search */}
+          <div className="relative ml-auto">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar por título ou obra..."
+              className="pl-8 h-8 text-xs w-64"
+            />
           </div>
-        ) : (
-          <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
-            {/* Table header */}
-            <div className="border-b border-border bg-muted/40 px-5 py-3 flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Obras &amp; Laudos</h3>
-              <span className="text-xs text-muted-foreground">{laudos.length} laudo{laudos.length !== 1 ? 's' : ''}</span>
+        </div>
+
+        {/* ── Table ───────────────────────────────────────── */}
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          {laudosFiltrados.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+              <FileText size={40} className="opacity-20" />
+              <p className="text-sm font-medium">
+                {laudos.length === 0 ? 'Nenhum laudo criado' : 'Nenhum laudo encontrado'}
+              </p>
+              {laudos.length === 0 && (
+                <Button onClick={() => setNovoDialogOpen(true)} size="sm" className="gap-2 mt-2">
+                  <Plus size={14} />
+                  Criar primeiro laudo
+                </Button>
+              )}
             </div>
-
-            <div className="divide-y divide-border/60">
-              {obraKeys.map(obraKey => {
-                const obraInfo = obras.find(o => o.id === obraKey);
-                const obraNome = obraKey === 'sem-obra' ? 'Sem obra vinculada' : (obraInfo?.nome || obraKey);
-                const isExpanded = expandedObras.has(obraKey);
-                const obraLaudos = grouped[obraKey];
-
-                return (
-                  <div key={obraKey}>
-                    {/* Folder row */}
-                    <button
-                      className="flex w-full items-center gap-3 px-5 py-3.5 text-left transition-colors hover:bg-muted/40 group"
-                      onClick={(e) => toggleObra(obraKey, e)}
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">TÍTULO</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">OBRA</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">LINDEIROS</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">STATUS</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">ÚLTIMA EDIÇÃO</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-muted-foreground text-right">AÇÕES</th>
+                </tr>
+              </thead>
+              <tbody>
+                {laudosFiltrados.map((laudo, i) => {
+                  const obraNome = obras.find(o => o.id === laudo.obraId)?.nome;
+                  return (
+                    <tr
+                      key={laudo.id}
+                      onClick={() => navigate(`/laudos/${laudo.id}/editor`)}
+                      className={`cursor-pointer hover:bg-muted/40 transition-colors border-b border-border last:border-0 ${i % 2 !== 0 ? 'bg-muted/10' : ''}`}
                     >
-                      <span className="text-muted-foreground group-hover:text-foreground transition-colors">
-                        {isExpanded
-                          ? <ChevronDown className="h-4 w-4" />
-                          : <ChevronRight className="h-4 w-4" />}
-                      </span>
-                      {isExpanded
-                        ? <FolderOpen className="h-5 w-5 text-primary" />
-                        : <Folder className="h-5 w-5 text-primary" />}
-                      <span className="flex-1 text-sm font-semibold text-foreground">{obraNome}</span>
-                      <Badge variant="secondary" className="text-xs font-normal tabular-nums">
-                        {obraLaudos.length} laudo{obraLaudos.length !== 1 ? 's' : ''}
-                      </Badge>
-                    </button>
-
-                    {/* Laudos list */}
-                    {isExpanded && (
-                      <div className="bg-muted/20">
-                        {obraLaudos.map((laudo, idx) => (
-                          <div
-                            key={laudo.id}
-                            className={`flex cursor-pointer items-center gap-3 px-5 py-3 transition-colors hover:bg-primary/5 group ${idx !== obraLaudos.length - 1 ? 'border-b border-border/40' : ''}`}
-                            onClick={() => navigate(`/laudos/${laudo.id}/editor`)}
-                          >
-                            {/* indent line */}
-                            <span className="w-4 shrink-0 flex items-center justify-center">
-                              <span className="h-full w-px bg-border" />
-                            </span>
-                            <FileText className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
-
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                                {laudo.titulo}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                Vol. {laudo.dadosCapa.volumeAtual}/{laudo.dadosCapa.totalVolumes}
-                                {' · '}{laudo.lindeiros.length} lindeiro{laudo.lindeiros.length !== 1 ? 's' : ''}
-                                {' · '}Atualizado {new Date(laudo.atualizadoEm).toLocaleDateString('pt-BR')}
-                              </p>
-                            </div>
-
-                            <Badge
-                              variant={laudo.status === 'finalizado' ? 'default' : 'outline'}
-                              className={
-                                laudo.status === 'finalizado'
-                                  ? 'bg-success/10 text-success border-success/20 text-xs'
-                                  : 'bg-warning/10 text-warning border-warning/20 text-xs'
-                              }
+                      <td className="px-4 py-3 font-medium text-foreground">
+                        <span className="flex items-center gap-2">
+                          <FileText size={14} className="text-muted-foreground flex-shrink-0" />
+                          <span className="truncate max-w-[180px]">{laudo.titulo}</span>
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
+                        {obraNome ? (
+                          <span className="flex items-center gap-1.5">
+                            <FolderOpen size={13} className="text-primary/60" />
+                            <span className="truncate max-w-[140px]">{obraNome}</span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground/40">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell text-xs">
+                        <span className="flex items-center gap-1">
+                          <MapPin size={12} />
+                          {laudo.lindeiros.length} lindeiro{laudo.lindeiros.length !== 1 ? 's' : ''}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_COLORS[laudo.status] ?? STATUS_COLORS.rascunho}`}>
+                          {STATUS_LABELS[laudo.status] ?? laudo.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs hidden md:table-cell">
+                        {new Date(laudo.atualizadoEm).toLocaleDateString('pt-BR', {
+                          day: '2-digit', month: '2-digit', year: 'numeric',
+                        })}
+                      </td>
+                      <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs gap-1">
+                              Ações <ChevronDown size={11} />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuItem onClick={() => navigate(`/laudos/${laudo.id}/editor`)}>
+                              <FolderOpen size={14} className="mr-2" /> Abrir
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={e => handleDuplicar(laudo.id, e as any)}>
+                              <Copy size={14} className="mr-2" /> Duplicar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setDeleteTarget(laudo.id)}
                             >
-                              {laudo.status === 'finalizado' ? 'Finalizado' : 'Rascunho'}
-                            </Badge>
+                              <Trash2 size={14} className="mr-2" /> Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
 
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                                onClick={(e) => handleDuplicar(laudo.id, e)}
-                                title="Duplicar laudo"
-                              >
-                                <Copy className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                onClick={e => { e.stopPropagation(); removerLaudo(laudo.id); }}
-                                title="Excluir laudo"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+      {/* ── Dialog: Novo Laudo ───────────────────────────── */}
+      <Dialog open={novoDialogOpen} onOpenChange={setNovoDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Criar Novo Laudo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Título do Laudo</Label>
+              <Input value={novoTitulo} onChange={e => setNovoTitulo(e.target.value)} placeholder="Novo Laudo Cautelar" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Nome da Obra</Label>
+              <Input value={novaObra} onChange={e => setNovaObra(e.target.value)} placeholder="Ex: Residencial Vila Nova" />
+              <p className="text-xs text-muted-foreground">Laudos da mesma obra ficam agrupados</p>
             </div>
           </div>
-        )}
-      </main>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setNovoDialogOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleCriarLaudo}>Criar Laudo</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── AlertDialog: Confirmar exclusão ─────────────── */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={open => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir laudo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O laudo será removido permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { if (deleteTarget) removerLaudo(deleteTarget); setDeleteTarget(null); }}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
