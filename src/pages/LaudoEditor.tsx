@@ -168,6 +168,10 @@ const LaudoEditor = () => {
                 <ConclusaoSection
                   conclusao={laudo.conclusao || ''}
                   onUpdate={(conclusao) => handleUpdate({ conclusao })}
+                  lindeiros={laudo.lindeiros}
+                  dadosCapa={laudo.dadosCapa}
+                  volumeAtual={laudo.dadosCapa.volumeAtual}
+                  totalVolumes={laudo.dadosCapa.totalVolumes}
                 />
               </div>
             )}
