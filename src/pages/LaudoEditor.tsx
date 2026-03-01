@@ -55,6 +55,7 @@ const LaudoEditor = () => {
     <div className="flex h-screen flex-col overflow-hidden bg-editor-bg">
       <EditorToolbar
         titulo={laudo.titulo}
+        status={laudo.status}
         onTituloChange={(titulo) => handleUpdate({ titulo })}
         onVoltar={() => navigate('/')}
         onExportPDF={async () => {
@@ -68,7 +69,7 @@ const LaudoEditor = () => {
       />
 
       <div className="flex flex-1 overflow-hidden">
-        <EditorSidebar secaoAtiva={secaoAtiva} onSecaoClick={setSecaoAtiva} lindeiros={laudo.lindeiros} />
+        <EditorSidebar secaoAtiva={secaoAtiva} onSecaoClick={setSecaoAtiva} lindeiros={laudo.lindeiros} titulo={laudo.titulo} />
 
         <main className="flex-1 overflow-auto p-8" style={{ background: 'hsl(var(--editor-bg))' }}>
           <div className="mb-4 flex items-center justify-end gap-2">
