@@ -21,11 +21,10 @@ import { toast } from '@/hooks/use-toast';
 const LaudoEditor = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getLaudo, atualizarLaudo } = useLaudoStore();
+  const { getLaudo, atualizarLaudo, loading } = useLaudoStore();
   const [secaoAtiva, setSecaoAtiva] = useState<SecaoId>('capa');
   const [zoom, setZoom] = useState(0.6);
 
-  const { loading } = useLaudoStore();
   const laudo = getLaudo(id || '');
 
   useEffect(() => {
