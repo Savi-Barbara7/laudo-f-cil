@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLaudoStore } from '@/hooks/useLaudoStore';
-import { SECOES_NAVEGAVEIS } from '@/data/defaultTexts';
 import { EditorSidebar } from '@/components/editor/EditorSidebar';
 import { EditorToolbar } from '@/components/editor/EditorToolbar';
 import { CoverPage } from '@/components/editor/CoverPage';
 import { SectionPage } from '@/components/editor/SectionPage';
 import { LindeirosSection } from '@/components/editor/LindeirosSection';
+import { CanteiroSection } from '@/components/editor/CanteiroSection';
 import { CroquiSection } from '@/components/editor/CroquiSection';
 import { ARTSection } from '@/components/editor/ARTSection';
 import { DocumentacoesSection } from '@/components/editor/DocumentacoesSection';
@@ -14,6 +14,7 @@ import { FichasSection } from '@/components/editor/FichasSection';
 import { ConclusaoSection } from '@/components/editor/ConclusaoSection';
 import { gerarPDF } from '@/lib/pdfGenerator';
 import type { SecaoId, Laudo } from '@/types/laudo';
+import { aplicarPlaceholders, SECOES_NAVEGAVEIS } from '@/data/defaultTexts';
 import { ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -28,10 +29,7 @@ const LaudoEditor = () => {
   const laudo = getLaudo(id || '');
 
   useEffect(() => {
-    // Only redirect if loading is done AND laudo is not found
-    if (!loading && !laudo && id) {
-      navigate('/');
-    }
+    if (!loading && !laudo && id) navigate('/');
   }, [laudo, id, navigate, loading]);
 
   const handleUpdate = useCallback(
@@ -50,6 +48,17 @@ const LaudoEditor = () => {
   if (!laudo) return null;
 
   const secoesTexto: SecaoId[] = ['introducao', 'objeto', 'objetivo', 'finalidade', 'responsabilidades', 'classificacao'];
+
+  // Detecta se é seção de lindeiro individual
+  const isLindeiroAtivo = secaoAtiva.startsWith('lindeiro-');
+  const lindeiroAtivoId = isLindeiroAtivo ? secaoAtiva.replace('lindeiro-', '') : null;
+  const lindeiroAtivo = lindeiroAtivoId ? laudo.lindeiros.find(l => l.id === lindeiroAtivoId) : null;
+  const lindeiroAtivoIndex = lindeiroAtivoId ? laudo.lindeiros.findIndex(l => l.id === lindeiroAtivoId) : -1;
+
+  // Aplica placeholders automaticamente nas seções de texto
+  const getTextoComPlaceholders = (secao: keyof typeof laudo.textos) => {
+    return aplicarPlaceholders(laudo.textos[secao] || '', laudo.dadosCapa);
+  };
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-editor-bg">
@@ -83,42 +92,100 @@ const LaudoEditor = () => {
           </div>
 
           <div className="mx-auto" style={{ transform: `scale(${zoom})`, transformOrigin: 'top center', width: '210mm' }}>
+
+            {/* CAPA */}
             {(secaoAtiva === 'capa' || secaoAtiva === 'indice') && (
               <div id="secao-capa" className="mb-8">
                 <CoverPage dadosCapa={laudo.dadosCapa} onUpdate={(dadosCapa) => handleUpdate({ dadosCapa })} />
               </div>
             )}
 
+            {/* ÍNDICE */}
             {secaoAtiva === 'indice' && (
               <div id="secao-indice" className="a4-page mb-8">
                 <h2 className="mb-6 text-center text-lg font-bold text-primary" style={{ fontFamily: 'Arial, sans-serif' }}>ÍNDICE</h2>
-                <div className="space-y-2">
-                  {SECOES_NAVEGAVEIS.filter(s => s.id !== 'capa' && s.id !== 'indice').map((secao, i) => (
-                    <div key={secao.id} className="flex cursor-pointer items-center justify-between border-b border-dotted border-muted-foreground/30 py-1 text-sm hover:text-primary" onClick={() => setSecaoAtiva(secao.id)}>
-                      <span>{secao.label}</span>
-                      <span className="text-muted-foreground">{i + 3}</span>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-muted-foreground mt-4 mb-2 uppercase tracking-wide">I. Informações Gerais</p>
+                  {['introducao', 'objeto', 'objetivo', 'finalidade', 'responsabilidades', 'classificacao'].map((s, i) => (
+                    <div key={s} className="flex cursor-pointer items-center justify-between border-b border-dotted border-muted-foreground/20 py-1 text-sm hover:text-primary"
+                      onClick={() => setSecaoAtiva(s as SecaoId)}>
+                      <span>{i + 1}. {SECOES_NAVEGAVEIS.find(sn => sn.id === s)?.label?.replace(/^[IVX]+\.\s/, '') ?? s}</span>
+                      <span className="text-muted-foreground">3</span>
+                    </div>
+                  ))}
+
+                  <p className="text-xs font-semibold text-muted-foreground mt-4 mb-2 uppercase tracking-wide">II. Volumes</p>
+                  <div className="flex cursor-pointer items-center justify-between border-b border-dotted border-muted-foreground/20 py-1 text-sm hover:text-primary"
+                    onClick={() => setSecaoAtiva('canteiro')}>
+                    <span>Volume 1 — Canteiro / Entorno / Drone</span>
+                    <span className="text-muted-foreground">—</span>
+                  </div>
+                  {laudo.lindeiros.map((l, i) => (
+                    <div key={l.id} className="flex cursor-pointer items-center justify-between border-b border-dotted border-muted-foreground/20 py-1 text-sm hover:text-primary"
+                      onClick={() => setSecaoAtiva(`lindeiro-${l.id}` as SecaoId)}>
+                      <span>Volume {i + 2} — Lindeiro {i + 1}: {l.endereco || '—'}</span>
+                      <span className="text-muted-foreground">—</span>
+                    </div>
+                  ))}
+
+                  <p className="text-xs font-semibold text-muted-foreground mt-4 mb-2 uppercase tracking-wide">Anexos &amp; Conclusão</p>
+                  {['croqui', 'art', 'documentacoes', 'fichas', 'conclusao'].map((s) => (
+                    <div key={s} className="flex cursor-pointer items-center justify-between border-b border-dotted border-muted-foreground/20 py-1 text-sm hover:text-primary"
+                      onClick={() => setSecaoAtiva(s as SecaoId)}>
+                      <span>{SECOES_NAVEGAVEIS.find(sn => sn.id === s)?.label ?? s}</span>
+                      <span className="text-muted-foreground">—</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
+            {/* SEÇÕES DE TEXTO — com placeholders aplicados */}
             {secoesTexto.includes(secaoAtiva) && (
               <div id={`secao-${secaoAtiva}`} className="mb-8">
                 <SectionPage
                   secaoId={secaoAtiva}
                   conteudo={laudo.textos[secaoAtiva as keyof typeof laudo.textos]}
                   onUpdate={(conteudo) => handleUpdate({ textos: { ...laudo.textos, [secaoAtiva]: conteudo } })}
+                  placeholder={getTextoComPlaceholders(secaoAtiva as keyof typeof laudo.textos)}
                 />
               </div>
             )}
 
+            {/* VOLUME 1 — CANTEIRO */}
+            {secaoAtiva === 'canteiro' && (
+              <div id="secao-canteiro" className="mb-8">
+                <CanteiroSection
+                  canteiro={laudo.canteiroVolume || { endereco: '', dataVistoria: '', caracteristicasGerais: '', fotos: [] }}
+                  onUpdate={(canteiroVolume) => handleUpdate({ canteiroVolume })}
+                />
+              </div>
+            )}
+
+            {/* VOLUME LINDEIRO INDIVIDUAL */}
+            {isLindeiroAtivo && lindeiroAtivo && (
+              <div id={`secao-${secaoAtiva}`} className="mb-8">
+                <LindeirosSection
+                  lindeiros={[lindeiroAtivo]}
+                  onUpdate={(updated) => {
+                    const todos = laudo.lindeiros.map((l, i) =>
+                      i === lindeiroAtivoIndex ? updated[0] : l
+                    );
+                    handleUpdate({ lindeiros: todos });
+                  }}
+                  volumeNumero={lindeiroAtivoIndex + 2}
+                />
+              </div>
+            )}
+
+            {/* GERENCIAR TODOS OS LINDEIROS */}
             {secaoAtiva === 'lindeiros' && (
               <div id="secao-lindeiros" className="mb-8">
                 <LindeirosSection lindeiros={laudo.lindeiros} onUpdate={(lindeiros) => handleUpdate({ lindeiros })} />
               </div>
             )}
 
+            {/* CROQUI */}
             {secaoAtiva === 'croqui' && (
               <div id="secao-croqui" className="mb-8">
                 <CroquiSection
@@ -130,6 +197,7 @@ const LaudoEditor = () => {
               </div>
             )}
 
+            {/* ART */}
             {secaoAtiva === 'art' && (
               <div id="secao-art" className="mb-8">
                 <ARTSection
@@ -141,6 +209,7 @@ const LaudoEditor = () => {
               </div>
             )}
 
+            {/* DOCUMENTAÇÕES */}
             {secaoAtiva === 'documentacoes' && (
               <div id="secao-documentacoes" className="mb-8">
                 <DocumentacoesSection
@@ -152,6 +221,7 @@ const LaudoEditor = () => {
               </div>
             )}
 
+            {/* FICHAS */}
             {secaoAtiva === 'fichas' && (
               <div id="secao-fichas" className="mb-8">
                 <FichasSection
@@ -163,6 +233,7 @@ const LaudoEditor = () => {
               </div>
             )}
 
+            {/* CONCLUSÃO */}
             {secaoAtiva === 'conclusao' && (
               <div id="secao-conclusao" className="mb-8">
                 <ConclusaoSection
@@ -170,6 +241,7 @@ const LaudoEditor = () => {
                   onUpdate={(conclusao) => handleUpdate({ conclusao })}
                   lindeiros={laudo.lindeiros}
                   dadosCapa={laudo.dadosCapa}
+                  canteiroVolume={laudo.canteiroVolume}
                   volumeAtual={laudo.dadosCapa.volumeAtual}
                   totalVolumes={laudo.dadosCapa.totalVolumes}
                 />

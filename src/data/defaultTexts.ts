@@ -1,79 +1,74 @@
 import type { TextosSecoes, DadosCapa, SecaoNavegavel } from '@/types/laudo';
 
 export const TEXTOS_PADRAO: TextosSecoes = {
-  introducao: `<b>LAUDO TÉCNICO DE VISTORIA CAUTELAR DE LINDEIROS (LVL)</b>
+  introducao: `<h1>LAUDO TÉCNICO DE VISTORIA CAUTELAR DE LINDEIROS (LVL)</h1>
 
-O Laudo Técnico de Vistoria Cautelar de Vizinhança é uma solução preventiva que visa apurar o estado de conservação dos imóveis localizados próximos a canteiros de obras e/ou regiões de mobilização em solo. Este laudo atua como uma garantia contra reclamações por danos e prejuízos indevidos, oferecendo segurança tanto para a empresa contratante quanto para os proprietários dos imóveis em situações de embates judiciais.
+<p>O Laudo Técnico de Vistoria Cautelar de Vizinhança é uma solução preventiva que visa apurar o estado de conservação dos imóveis localizados próximos a canteiros de obras e/ou regiões de mobilização em solo. Este laudo atua como uma garantia contra reclamações por danos e prejuízos indevidos, oferecendo segurança tanto para a empresa contratante quanto para os proprietários dos imóveis em situações de embates judiciais. Em casos de futuras reclamações, o laudo permite à empresa contratante verificar se o problema era preexistente e, com isso, avaliar se foi originado em decorrência das obras ou das mobilizações no entorno.</p>
 
-<b>Métodos Utilizados para a Realização do Laudo:</b>
-1. Levantamento Detalhado: Identificação do número e tipos de imóveis no entorno.
-2. Identificação dos Endereços: Coleta dos endereços completos.
-3. Comunicação com Proprietários: Envio de correspondências solicitando autorização.
-4. Agendamento da Vistoria: Programação prévia nas dependências internas e externas.
-5. Registro das Condições: Registro das características gerais e estado de conservação.
-6. Registro Fotográfico Detalhado: Identificação de danos preexistentes.
-7. Ficha de Vistoria: Elaboração de uma ficha de vistoria com ciência dos fatos.
+<h2>Métodos Utilizados para a Realização do Laudo:</h2>
 
-<b>Critérios para Seleção de Estruturas:</b>
-A seleção das estruturas segue os seguintes critérios:
-- Definição pelo solicitante.
-- Presença de estruturas sensíveis (patrimônios, escolas).
-- Localização na área de influência direta.
+<ul>
+<li>Levantamento Detalhado: identificação do número e tipos de imóveis entorno do empreendimento/obra.</li>
+<li>Identificação dos Endereços: coleta dos endereços completos dos imóveis próximos à área de construção.</li>
+<li>Comunicação com Proprietários: envio de correspondências aos proprietários/inquilinos/síndicos solicitando autorização para visita técnica.</li>
+<li>Agendamento da Vistoria: programação prévia das vistorias com autorização do responsável.</li>
+<li>Registro das Condições: registro das características gerais e condições físicas dos imóveis.</li>
+<li>Registro Fotográfico Detalhado: registro minucioso das dependências para identificar revestimentos e danos preexistentes.</li>
+<li>Ficha de Vistoria: elaboração de ficha de vistoria para ciência dos fatos observados.</li>
+</ul>`,
 
-Essa metodologia está em conformidade com a NBR 12722:1992.`,
+  objeto: `<p>No imóvel localizado a <strong>{ENDERECO_OBRA}</strong>, há atualmente um terreno {TERRENO_BENFEITORIAS} pronto para início da obra. No local, será executado o empreendimento <strong>{EMPREENDIMENTO}</strong>, conforme solicitado pela empresa <strong>{SOLICITANTE}</strong>.</p>
 
-  objeto: `No imóvel localizado a [INSERIR ENDEREÇO], há atualmente um terreno sem benfeitorias pronto para o início da obra. No local, será executado o Empreendimento [NOME], conforme solicitado pela empresa [EMPRESA].
+<p>As visitas técnicas aos imóveis lindeiros à futura obra foram realizadas em <strong>{DATAS_VISTORIAS}</strong>. As observações técnicas de engenharia foram registradas e são agora apresentadas de forma detalhada, incluindo documentário fotográfico e descrição técnica.</p>
 
-As visitas técnicas aos imóveis lindeiros foram realizadas em datas específicas. As observações técnicas foram registradas e são apresentadas de forma detalhada.
-A leitura atenta do laudo é essencial para a definição de estratégias e a tomada de decisões.`,
+<p>A leitura atenta do laudo técnico que será apresentado a seguir é essencial para a definição de estratégias e a tomada de decisões antes do início das mobilizações. A correta interpretação por parte da equipe técnica garantirá a segurança no entorno e nas divisas do projeto.</p>`,
 
-  objetivo: `<b>OBJETIVO</b>
+  objetivo: `<h2>OBJETIVO</h2>
 
-O objetivo do laudo cautelar de lindeiros é documentar de forma detalhada e precisa o estado de conservação das edificações e propriedades vizinhas a uma obra ou empreendimento antes do início das atividades de construção.
+<p>O objetivo do laudo cautelar de lindeiros é documentar de forma detalhada e precisa o estado de conservação das edificações e propriedades vizinhas a uma obra ou empreendimento antes do início das atividades de construção. Este laudo serve como um registro oficial que resguarda tanto a construtora quanto os proprietários dos imóveis circunvizinhos, oferecendo proteção jurídica e técnica.</p>
 
-<b>Especificamente, o laudo busca:</b>
-1. Registrar o Estado Atual dos Imóveis.
-2. Resguardar Direitos e Responsabilidades.
-3. Prevenir Conflitos Judiciais.
-4. Cumprir Exigências Normativas.
+<p>O laudo cautelar busca:</p>
+<ul>
+<li>Registrar o Estado Atual dos Imóveis (documentação detalhada).</li>
+<li>Resguardar Direitos e Responsabilidades (proteção para construtora e proprietários).</li>
+<li>Prevenir Conflitos Judiciais (base para resolução e redução de litígios).</li>
+<li>Cumprir Exigências Normativas (conformidade legal).</li>
+</ul>`,
 
-Em resumo, é uma ferramenta essencial para assegurar que todas as partes envolvidas estejam protegidas.`,
+  finalidade: `<h2>FINALIDADE</h2>
 
-  finalidade: `<b>FINALIDADE</b>
+<p>A finalidade do laudo cautelar é fornecer um registro técnico detalhado e imparcial do estado atual de uma propriedade ou conjunto de propriedades antes do início de obras/atividades que possam causar impacto. Este laudo é utilizado como medida preventiva para proteger os interesses das partes envolvidas.</p>
 
-A finalidade do laudo cautelar é fornecer um registro técnico detalhado e imparcial do estado atual de uma propriedade antes do início de obras. Este laudo é utilizado como uma medida preventiva.
+<p>Finalidades incluem:</p>
+<ul>
+<li>Documentação Preventiva</li>
+<li>Proteção Jurídica</li>
+<li>Transparência e Comunicação</li>
+<li>Cumprimento de Normas e Regulamentações</li>
+<li>Prevenção de Conflitos</li>
+</ul>`,
 
-<b>Finalidades específicas:</b>
-1. Documentação Preventiva.
-2. Proteção Jurídica.
-3. Transparência e Comunicação.
-4. Cumprimento de Normas.
-5. Prevenção de Conflitos.
+  responsabilidades: `<h2>RESPONSABILIDADES E PROCEDIMENTOS</h2>
 
-Assegura-se o resguardo dos direitos das partes envolvidas.`,
+<p>Durante as vistorias técnicas, foram realizadas fotografias detalhadas das dependências e delimitações dos imóveis que fazem divisa com o terreno do canteiro de obras, conforme solicitado pela construtora. As imagens capturadas visam facilitar a visualização e registro do estado estrutural, do tipo de revestimento utilizado, e da identificação de qualquer patologia existente, como microfissuras, fissuras, trincas, rupturas, manchas e focos de infiltrações/umidade.</p>
 
-  responsabilidades: `<b>RESPONSABILIDADES E PROCEDIMENTOS</b>
+<p>As fotos abrangem dependências internas e externas autorizadas. Em casos de acesso negado, o proprietário assume responsabilidade por eventuais danos futuros. Caso alguma foto não apresente nitidez suficiente, recomenda-se consultar o arquivo digital original.</p>
 
-Durante as vistorias técnicas, foram realizadas fotografias detalhadas das dependências e delimitações dos imóveis. As imagens visam facilitar a visualização e registro do estado estrutural e patologias.
+<h2>Considerações Técnicas:</h2>
+<p>Para obras com escavações e execução de tirantes/protenção, é necessário estudo detalhado das fundações vizinhas e tubulações, considerando o raio de influência das atividades.</p>
 
-<b>Considerações Técnicas:</b>
-Para obras que envolvem escavações e tirantes, é necessário um estudo detalhado das fundações vizinhas.
+<h2>Privacidade das Imagens Registradas:</h2>
+<p>As imagens são utilizadas exclusivamente para fins técnicos e documentais, com confidencialidade, e só serão divulgadas mediante autorização ou exigência legal.</p>`,
 
-<b>Privacidade das Imagens:</b>
-As imagens são utilizadas exclusivamente para fins técnicos e documentais.`,
+  classificacao: `<h2>CONCEITO PARA DETERMINAÇÃO DE ESTADOS DE CONSERVAÇÃO</h2>
 
-  classificacao: `<b>Classificação dos Estados de Conservação:</b>
-
-<b>Bom e Satisfatório:</b> Revestimentos em bom estado.
-
-<b>Regular:</b> Necessitam de reparos, mas sem risco estrutural.
-
-<b>Ruim e Crítico:</b> Manifestações patológicas avançadas, risco estrutural.
-
-<b>NOVO:</b> Recém-construídas (menos de 3 meses).
-
-<b>Considerações sobre Construções Novas:</b>
-É comum ocorrerem acomodações estruturais nos primeiros 24 meses, resultando em microfissuras.`,
+<h2>Classificação do Estado de Conservação da Edificação:</h2>
+<ul>
+<li><strong>Bom e Satisfatório:</strong> aplica-se a edificações não novas que mantêm revestimentos em bom estado, sem desgaste excessivo/deformações/comprometimento estrutural.</li>
+<li><strong>Regular:</strong> edificações que necessitam reparos nos revestimentos, sem comprometer estruturas principais.</li>
+<li><strong>Ruim e Crítico:</strong> manifestações patológicas avançadas (infiltrações graves, fissuras/trincas significativas, risco estrutural).</li>
+<li><strong>Novo (Bom e Satisfatório):</strong> edificações recém-construídas, livres de anomalias, ainda com acomodação inicial possível.</li>
+</ul>`,
 };
 
 export const DADOS_CAPA_PADRAO: DadosCapa = {
@@ -83,7 +78,22 @@ export const DADOS_CAPA_PADRAO: DadosCapa = {
   cnpj: '',
   volumeAtual: 1,
   totalVolumes: 1,
+  datasVistorias: '',
+  terrenoBenfeitorias: 'sem benfeitorias',
 };
+
+/**
+ * Substitui placeholders nos textos com dados reais da capa
+ */
+export function aplicarPlaceholders(texto: string, capa: DadosCapa): string {
+  return texto
+    .replace(/\{ENDERECO_OBRA\}/g, capa.localObra || '[ENDEREÇO DA OBRA]')
+    .replace(/\{EMPREENDIMENTO\}/g, capa.empreendimento || '[EMPREENDIMENTO]')
+    .replace(/\{SOLICITANTE\}/g, capa.solicitante || '[SOLICITANTE]')
+    .replace(/\{CNPJ\}/g, capa.cnpj || '[CNPJ]')
+    .replace(/\{DATAS_VISTORIAS\}/g, capa.datasVistorias || '[DATAS DAS VISTORIAS]')
+    .replace(/\{TERRENO_BENFEITORIAS\}/g, capa.terrenoBenfeitorias || 'sem benfeitorias');
+}
 
 export const SECOES_NAVEGAVEIS: SecaoNavegavel[] = [
   { id: 'capa', label: 'Capa' },
@@ -94,10 +104,11 @@ export const SECOES_NAVEGAVEIS: SecaoNavegavel[] = [
   { id: 'finalidade', label: 'IV. Finalidade' },
   { id: 'responsabilidades', label: 'V. Responsabilidades' },
   { id: 'classificacao', label: 'VI. Classificação' },
-  { id: 'lindeiros', label: 'VII. Vistoria dos Lindeiros' },
-  { id: 'croqui', label: 'VIII. Croqui' },
-  { id: 'art', label: 'IX. ART' },
-  { id: 'documentacoes', label: 'X. Documentações' },
-  { id: 'fichas', label: 'XI. Fichas' },
-  { id: 'conclusao', label: 'XII. Conclusão' },
+  { id: 'canteiro', label: 'Vol. 1 — Canteiro / Entorno / Drone' },
+  { id: 'lindeiros', label: 'Vistoria dos Lindeiros' },
+  { id: 'croqui', label: 'III. Croqui' },
+  { id: 'art', label: 'IV. ART' },
+  { id: 'documentacoes', label: 'V. Documentações' },
+  { id: 'fichas', label: 'Fichas / Anexos' },
+  { id: 'conclusao', label: 'VI. Conclusão' },
 ];

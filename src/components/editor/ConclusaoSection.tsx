@@ -9,17 +9,17 @@ interface ConclusaoSectionProps {
   onUpdate: (value: string) => void;
   lindeiros?: Lindeiro[];
   dadosCapa?: { empreendimento?: string; localObra?: string; solicitante?: string };
+  canteiroVolume?: { caracteristicasGerais?: string };
   volumeAtual?: number;
   totalVolumes?: number;
 }
 
-export function ConclusaoSection({ conclusao, onUpdate, lindeiros = [], dadosCapa, volumeAtual = 1, totalVolumes = 1 }: ConclusaoSectionProps) {
+export function ConclusaoSection({ conclusao, onUpdate, lindeiros = [], dadosCapa, canteiroVolume, volumeAtual = 1, totalVolumes = 1 }: ConclusaoSectionProps) {
   const [generating, setGenerating] = useState(false);
 
   const gerarConclusaoAutomatica = async () => {
     setGenerating(true);
     try {
-      // Count by estado de conservação
       const counts = { Bom: 0, Regular: 0, Ruim: 0, Novo: 0 };
       for (const l of lindeiros) {
         if (l.estadoConservacao in counts) counts[l.estadoConservacao as keyof typeof counts]++;
@@ -29,34 +29,43 @@ export function ConclusaoSection({ conclusao, onUpdate, lindeiros = [], dadosCap
       const local = dadosCapa?.localObra || '[LOCAL DA OBRA]';
       const solicitante = dadosCapa?.solicitante || '[SOLICITANTE]';
 
+      // Composição por volumes
+      const volItem1 = `<li>Volume 1 — Canteiro de Obras / Entorno / Drone${canteiroVolume?.caracteristicasGerais ? '' : ''}</li>`;
+      const volItemsLind = lindeiros.map((l, i) =>
+        `<li>Volume ${i + 2} — Lindeiro ${i + 1}: ${l.endereco || 'Endereço não informado'} — ${l.tipoImovel} ${l.tipoUso} — Estado: <strong>${l.estadoConservacao}</strong></li>`
+      ).join('\n');
+
       const estadoParts: string[] = [];
-      if (counts.Bom > 0) estadoParts.push(`${counts.Bom} em bom estado de conservação`);
+      if (counts.Bom > 0) estadoParts.push(`${counts.Bom} em bom estado`);
       if (counts.Regular > 0) estadoParts.push(`${counts.Regular} em estado regular`);
       if (counts.Ruim > 0) estadoParts.push(`${counts.Ruim} em estado ruim`);
-      if (counts.Novo > 0) estadoParts.push(`${counts.Novo} classificado(s) como novo(s)`);
-
-      const estadoDesc = estadoParts.length > 0 ? estadoParts.join(', ') : 'estado de conservação a ser avaliado';
-
-      const temRuim = counts.Ruim > 0;
-      const temRegular = counts.Regular > 0;
+      if (counts.Novo > 0) estadoParts.push(`${counts.Novo} novo(s)`);
+      const estadoDesc = estadoParts.join(', ') || 'sem classificação definida';
 
       let recomendacoes = '';
-      if (temRuim) {
-        recomendacoes = `\n\n<b>Recomendações:</b> Foram identificados imóveis em estado ruim de conservação, com manifestações patológicas preexistentes que devem ser monitoradas durante a execução da obra. Recomenda-se atenção especial ao monitoramento estrutural nesses casos.`;
-      } else if (temRegular) {
-        recomendacoes = `\n\n<b>Recomendações:</b> Alguns imóveis apresentam estado regular de conservação com necessidade de reparos. Recomenda-se monitoramento periódico durante a obra.`;
+      if (counts.Ruim > 0) {
+        recomendacoes = `<p>Foram identificados imóveis em estado ruim de conservação, com manifestações patológicas preexistentes que devem ser monitoradas durante a execução da obra. Recomenda-se atenção especial ao monitoramento estrutural nesses casos.</p>`;
+      } else if (counts.Regular > 0) {
+        recomendacoes = `<p>Alguns imóveis apresentam estado regular de conservação com necessidade de reparos. Recomenda-se monitoramento periódico durante a obra.</p>`;
       } else {
-        recomendacoes = `\n\n<b>Recomendações:</b> As edificações vistoriadas apresentam bom estado geral de conservação. Recomenda-se monitoramento preventivo durante as fases de maior impacto da obra.`;
+        recomendacoes = `<p>As edificações vistoriadas apresentam bom estado geral de conservação. Recomenda-se monitoramento preventivo durante as fases de maior impacto da obra.</p>`;
       }
 
-      const html = `<p>O presente Laudo Técnico Cautelar de Vistoria de Lindeiros, elaborado pela empresa <b>Competence Consultoria e Perícias</b>, a pedido de <b>${solicitante}</b>, refere-se ao empreendimento denominado <b>${empreendimento}</b>, localizado em <b>${local}</b>.</p>
+      const html = `<p>As vistorias procedidas nos imóveis lindeiros têm finalidade exclusivamente preventiva e documental, com o objetivo de registrar as condições preexistentes das edificações vizinhas ao empreendimento, antes do início das obras.</p>
 
-<p>Este volume (${volumeAtual} de ${totalVolumes}) contempla a vistoria de <b>${total} imóvel(is) lindeiro(s)</b>, sendo: ${estadoDesc}.</p>
+<p>O presente Laudo Técnico Cautelar de Vistoria de Lindeiros foi elaborado pela empresa <strong>Competence Consultoria e Perícias</strong>, a pedido de <strong>${solicitante}</strong>, referente ao empreendimento <strong>${empreendimento}</strong>, localizado em <strong>${local}</strong>.</p>
 
-<p>As vistorias foram realizadas por profissional habilitado, com registro fotográfico detalhado e ficha de vistoria assinada pelos responsáveis pelos imóveis, quando presentes. O levantamento seguiu os critérios estabelecidos pela <b>NBR 12722:1992</b> e demais normas técnicas vigentes.</p>
+<p>Este laudo cautelar é composto por <strong>${totalVolumes} volume(s)</strong> e estão distribuídos da seguinte forma:</p>
+<ul>
+${volItem1}
+${volItemsLind}
+</ul>
 
-<p>O objetivo deste laudo é preservar os direitos de todas as partes envolvidas, documentando o estado de conservação dos imóveis lindeiros antes do início das atividades construtivas, servindo como instrumento técnico-jurídico na eventualidade de reclamações por danos decorrentes da obra.${recomendacoes}</p>
+<p>Neste volume (${volumeAtual} de ${totalVolumes}), foram vistoriados <strong>${total} imóvel(is) lindeiro(s)</strong>, com o seguinte resumo: ${estadoDesc}.</p>
 
+<p>As vistorias foram realizadas por profissional habilitado, com registro fotográfico detalhado e ficha de vistoria assinada pelos responsáveis pelos imóveis, quando presentes. O levantamento seguiu os critérios estabelecidos pela <strong>NBR 12722:1992</strong> e demais normas técnicas vigentes.</p>
+
+${recomendacoes}
 <p>Este documento foi elaborado com base nas vistorias realizadas in loco, sendo de responsabilidade exclusiva do profissional técnico responsável a veracidade das informações registradas.</p>`;
 
       onUpdate(html);

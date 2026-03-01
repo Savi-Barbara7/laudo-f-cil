@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, createContext, useContext, type React
 import { createElement } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import type { Laudo } from '@/types/laudo';
+import type { Laudo, CanteiroVolume } from '@/types/laudo';
 import { TEXTOS_PADRAO, DADOS_CAPA_PADRAO } from '@/data/defaultTexts';
 
 interface LaudoStoreContextType {
@@ -16,6 +16,13 @@ interface LaudoStoreContextType {
 }
 
 const LaudoStoreContext = createContext<LaudoStoreContextType | undefined>(undefined);
+
+const CANTEIRO_PADRAO: CanteiroVolume = {
+  endereco: '',
+  dataVistoria: '',
+  caracteristicasGerais: '',
+  fotos: [],
+};
 
 function LaudoStoreProviderInner({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -73,6 +80,8 @@ function LaudoStoreProviderInner({ children }: { children: ReactNode }) {
         dados_capa: DADOS_CAPA_PADRAO,
         textos: TEXTOS_PADRAO,
         lindeiros: [],
+        volumes: [],
+        canteiro_volume: CANTEIRO_PADRAO,
         croqui_images: [],
         art_images: [],
         documentacoes: [],
@@ -107,6 +116,8 @@ function LaudoStoreProviderInner({ children }: { children: ReactNode }) {
         dados_capa: original.dadosCapa,
         textos: original.textos,
         lindeiros: original.lindeiros,
+        volumes: original.volumes || [],
+        canteiro_volume: original.canteiroVolume || CANTEIRO_PADRAO,
         croqui_images: original.croquiImages,
         art_images: original.artImages,
         documentacoes: original.documentacoes,
@@ -133,6 +144,8 @@ function LaudoStoreProviderInner({ children }: { children: ReactNode }) {
     if (updates.dadosCapa !== undefined) dbUpdates.dados_capa = updates.dadosCapa;
     if (updates.textos !== undefined) dbUpdates.textos = updates.textos;
     if (updates.lindeiros !== undefined) dbUpdates.lindeiros = updates.lindeiros;
+    if (updates.volumes !== undefined) dbUpdates.volumes = updates.volumes;
+    if (updates.canteiroVolume !== undefined) dbUpdates.canteiro_volume = updates.canteiroVolume;
     if (updates.croquiImages !== undefined) dbUpdates.croqui_images = updates.croquiImages;
     if (updates.croquiRichText !== undefined) dbUpdates.croqui_rich_text = updates.croquiRichText;
     if (updates.artImages !== undefined) dbUpdates.art_images = updates.artImages;
@@ -186,6 +199,8 @@ function rowToLaudo(row: any): Laudo {
     dadosCapa: row.dados_capa || DADOS_CAPA_PADRAO,
     textos: row.textos || {},
     lindeiros: row.lindeiros || [],
+    volumes: row.volumes || [],
+    canteiroVolume: row.canteiro_volume || { endereco: '', dataVistoria: '', caracteristicasGerais: '', fotos: [] },
     croquiImages: row.croqui_images || [],
     artImages: row.art_images || [],
     documentacoes: row.documentacoes || [],

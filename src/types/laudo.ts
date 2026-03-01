@@ -20,8 +20,34 @@ export interface Lindeiro {
   telefone: string;
   dataVistoria: string;
   descricao: string;
-  estadoConservacao: 'Bom' | 'Regular' | 'Ruim' | 'Novo';
+  estadoConservacao: 'Bom' | 'Regular' | 'Ruim' | 'Novo' | 'N/A';
   ambientes: Ambiente[];
+  acompanhante?: string;
+  caracteristicasGerais?: string;
+}
+
+// Volume 1 especial: Canteiro + Entorno + Drone
+export interface FotoCategoria {
+  id: string;
+  dataUrl: string;
+  legenda: string;
+  ordem: number;
+  categoria: 'canteiro' | 'entorno' | 'drone';
+}
+
+export interface CanteiroVolume {
+  endereco: string;
+  dataVistoria: string;
+  caracteristicasGerais: string;
+  fotos: FotoCategoria[];
+}
+
+// Volume genérico (Volume 2..N = Lindeiro)
+export interface Volume {
+  id: string;
+  numero: number; // 1-based, Volume 1 = canteiro
+  label: string;  // ex: "Volume 2 — Lindeiro 1"
+  lindeiro?: Lindeiro; // só para volumes de lindeiro
 }
 
 export interface CroquiImage {
@@ -44,6 +70,9 @@ export interface DadosCapa {
   volumeAtual: number;
   totalVolumes: number;
   fotoCapaUrl?: string;
+  // Campos adicionais automação
+  datasVistorias?: string;
+  terrenoBenfeitorias?: string;
 }
 
 export interface TextosSecoes {
@@ -63,6 +92,10 @@ export interface Laudo {
   status: StatusLaudo;
   dadosCapa: DadosCapa;
   textos: TextosSecoes;
+  // Nova estrutura de volumes
+  volumes: Volume[];
+  canteiroVolume?: CanteiroVolume;
+  // Legado (lindeiros diretos — manter compatibilidade)
   lindeiros: Lindeiro[];
   croquiImages: CroquiImage[];
   artImages: string[];
@@ -90,7 +123,9 @@ export type SecaoId =
   | 'finalidade'
   | 'responsabilidades'
   | 'classificacao'
-  | 'lindeiros'
+  | 'canteiro'     // Volume 1
+  | `lindeiro-${string}` // Volume 2..N (por ID)
+  | 'lindeiros'    // legado
   | 'croqui'
   | 'art'
   | 'documentacoes'

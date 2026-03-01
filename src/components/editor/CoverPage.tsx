@@ -32,6 +32,15 @@ export function CoverPage({ dadosCapa, onUpdate }: CoverPageProps) {
     }
   };
 
+  const fields: { key: keyof DadosCapa; label: string; placeholder: string }[] = [
+    { key: 'empreendimento', label: 'Empreendimento', placeholder: 'Nome do empreendimento' },
+    { key: 'localObra', label: 'Local da Obra', placeholder: 'Endereço completo da obra' },
+    { key: 'solicitante', label: 'Solicitante', placeholder: 'Nome da empresa contratante' },
+    { key: 'cnpj', label: 'CNPJ', placeholder: '00.000.000/0000-00' },
+    { key: 'datasVistorias', label: 'Datas das Vistorias', placeholder: 'Ex: 10/01/2025, 11/01/2025' },
+    { key: 'terrenoBenfeitorias', label: 'Terreno / Benfeitorias', placeholder: 'Ex: sem benfeitorias / com benfeitorias a demolir' },
+  ];
+
   return (
     <div className="a4-page flex flex-col items-center justify-between" style={{ minHeight: '297mm' }}>
       {/* Header - Logo */}
@@ -52,12 +61,8 @@ export function CoverPage({ dadosCapa, onUpdate }: CoverPageProps) {
 
       {/* Cover image area */}
       {dadosCapa.fotoCapaUrl ? (
-        <div className="group relative my-4 h-[120mm] w-full overflow-hidden rounded">
-          <img
-            src={dadosCapa.fotoCapaUrl}
-            alt="Foto da capa"
-            className="h-full w-full object-cover"
-          />
+        <div className="group relative my-4 h-[100mm] w-full overflow-hidden rounded">
+          <img src={dadosCapa.fotoCapaUrl} alt="Foto da capa" className="h-full w-full object-cover" />
           <button
             onClick={() => onUpdate({ ...dadosCapa, fotoCapaUrl: undefined })}
             className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-0 transition-opacity group-hover:opacity-100"
@@ -66,7 +71,7 @@ export function CoverPage({ dadosCapa, onUpdate }: CoverPageProps) {
           </button>
         </div>
       ) : (
-      <label className="my-4 flex h-[120mm] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded border-2 border-dashed border-muted-foreground/20 bg-muted/30 transition-colors hover:border-primary/40 hover:bg-muted/50">
+        <label className="my-4 flex h-[100mm] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded border-2 border-dashed border-muted-foreground/20 bg-muted/30 transition-colors hover:border-primary/40 hover:bg-muted/50">
           {uploading ? (
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/50" />
           ) : (
@@ -76,39 +81,28 @@ export function CoverPage({ dadosCapa, onUpdate }: CoverPageProps) {
             {uploading ? 'Enviando...' : 'Clique para adicionar foto da capa'}
           </p>
           <input
-            type="file"
-            accept="image/*"
-            className="hidden"
-            disabled={uploading}
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleCoverUpload(file);
-            }}
+            type="file" accept="image/*" className="hidden" disabled={uploading}
+            onChange={(e) => { const file = e.target.files?.[0]; if (file) handleCoverUpload(file); }}
           />
         </label>
       )}
 
       {/* Title block */}
-      <div className="my-6 w-full text-center">
-        <h2
-          className="text-lg font-bold leading-tight"
-          style={{ color: 'hsl(213, 56%, 24%)', fontFamily: 'Arial, sans-serif' }}
-        >
+      <div className="my-4 w-full text-center">
+        <h2 className="text-lg font-bold leading-tight" style={{ color: 'hsl(213, 56%, 24%)', fontFamily: 'Arial, sans-serif' }}>
           LAUDO TÉCNICO CAUTELAR DE<br />
           VISTORIA DE LINDEIROS
         </h2>
-        <p className="mt-3 text-sm text-muted-foreground" style={{ fontFamily: 'Arial, sans-serif' }}>
+        <p className="mt-2 text-sm text-muted-foreground" style={{ fontFamily: 'Arial, sans-serif' }}>
           Volume{' '}
           <input
-            type="number"
-            value={dadosCapa.volumeAtual}
+            type="number" value={dadosCapa.volumeAtual}
             onChange={(e) => handleChange('volumeAtual', parseInt(e.target.value) || 1)}
             className="inline-block w-10 border-b border-muted-foreground/30 bg-transparent text-center text-sm focus:outline-none"
           />
           {' de '}
           <input
-            type="number"
-            value={dadosCapa.totalVolumes}
+            type="number" value={dadosCapa.totalVolumes}
             onChange={(e) => handleChange('totalVolumes', parseInt(e.target.value) || 1)}
             className="inline-block w-10 border-b border-muted-foreground/30 bg-transparent text-center text-sm focus:outline-none"
           />
@@ -116,47 +110,22 @@ export function CoverPage({ dadosCapa, onUpdate }: CoverPageProps) {
       </div>
 
       {/* Editable fields */}
-      <div className="w-full space-y-3" style={{ fontFamily: 'Arial, sans-serif' }}>
-        <div className="flex items-center gap-2">
-          <span className="w-32 text-xs font-semibold uppercase text-muted-foreground">Empreendimento:</span>
-          <Input
-            value={dadosCapa.empreendimento}
-            onChange={(e) => handleChange('empreendimento', e.target.value)}
-            placeholder="Nome do empreendimento"
-            className="h-8 flex-1 border-none bg-transparent text-sm shadow-none focus-visible:ring-1"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-32 text-xs font-semibold uppercase text-muted-foreground">Local da Obra:</span>
-          <Input
-            value={dadosCapa.localObra}
-            onChange={(e) => handleChange('localObra', e.target.value)}
-            placeholder="Endereço completo"
-            className="h-8 flex-1 border-none bg-transparent text-sm shadow-none focus-visible:ring-1"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-32 text-xs font-semibold uppercase text-muted-foreground">Solicitante:</span>
-          <Input
-            value={dadosCapa.solicitante}
-            onChange={(e) => handleChange('solicitante', e.target.value)}
-            placeholder="Nome do solicitante"
-            className="h-8 flex-1 border-none bg-transparent text-sm shadow-none focus-visible:ring-1"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-32 text-xs font-semibold uppercase text-muted-foreground">CNPJ:</span>
-          <Input
-            value={dadosCapa.cnpj}
-            onChange={(e) => handleChange('cnpj', e.target.value)}
-            placeholder="00.000.000/0000-00"
-            className="h-8 flex-1 border-none bg-transparent text-sm shadow-none focus-visible:ring-1"
-          />
-        </div>
+      <div className="w-full space-y-2" style={{ fontFamily: 'Arial, sans-serif' }}>
+        {fields.map(({ key, label, placeholder }) => (
+          <div key={key} className="flex items-center gap-2 border-b border-muted/40 pb-1">
+            <span className="w-36 shrink-0 text-[9pt] font-semibold uppercase text-muted-foreground">{label}:</span>
+            <Input
+              value={(dadosCapa[key] as string) || ''}
+              onChange={(e) => handleChange(key, e.target.value)}
+              placeholder={placeholder}
+              className="h-7 flex-1 border-none bg-transparent text-sm shadow-none focus-visible:ring-1 px-0"
+            />
+          </div>
+        ))}
       </div>
 
       {/* Footer */}
-      <div className="mt-auto w-full pt-6">
+      <div className="mt-auto w-full pt-4">
         <div className="h-px w-full bg-border" />
         <p className="mt-2 text-center text-[8pt] text-muted-foreground" style={{ fontFamily: 'Arial, sans-serif' }}>
           Este laudo é de uso exclusivo do solicitante, não podendo ser reproduzido parcial ou totalmente sem autorização.
