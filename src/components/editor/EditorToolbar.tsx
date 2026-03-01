@@ -1,7 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Download, Loader2, Shield } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, Shield, Save } from 'lucide-react';
 import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 interface EditorToolbarProps {
   titulo: string;
@@ -12,6 +13,7 @@ interface EditorToolbarProps {
 
 export function EditorToolbar({ titulo, onTituloChange, onVoltar, onExportPDF }: EditorToolbarProps) {
   const [exporting, setExporting] = useState(false);
+  const [saved, setSaved] = useState(true);
 
   const handleExport = async () => {
     if (!onExportPDF) return;
@@ -24,39 +26,58 @@ export function EditorToolbar({ titulo, onTituloChange, onVoltar, onExportPDF }:
   };
 
   return (
-    <header className="flex items-center gap-3 border-b bg-card px-4 py-2.5 shadow-sm">
-      <Button variant="ghost" size="icon" onClick={onVoltar} className="h-8 w-8">
+    <header className="flex h-12 items-center gap-2 border-b border-border bg-card px-4 shadow-sm shrink-0">
+      {/* Back */}
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={onVoltar}
+        className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+      >
         <ArrowLeft className="h-4 w-4" />
       </Button>
 
-      <div className="flex items-center gap-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+      {/* Brand */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary shadow-sm">
           <Shield className="h-3.5 w-3.5 text-primary-foreground" />
         </div>
-        <span className="text-sm font-bold tracking-tight text-foreground">LVL PRO</span>
+        <span className="hidden text-[13px] font-bold tracking-tight text-foreground sm:block">LVL PRO</span>
       </div>
 
-      <div className="h-5 w-px bg-border" />
+      <div className="h-5 w-px bg-border shrink-0" />
 
+      {/* Title input */}
       <Input
         value={titulo}
-        onChange={(e) => onTituloChange(e.target.value)}
-        className="h-8 max-w-xs border-none bg-transparent text-sm font-medium shadow-none focus-visible:ring-1"
+        onChange={(e) => { onTituloChange(e.target.value); setSaved(false); setTimeout(() => setSaved(true), 2000); }}
+        className="h-8 flex-1 max-w-sm border-none bg-transparent text-sm font-medium shadow-none focus-visible:ring-1 focus-visible:ring-primary/30"
+        placeholder="Título do laudo"
       />
 
       <div className="flex-1" />
 
-      <span className="text-xs text-muted-foreground">Salvo automaticamente</span>
+      {/* Auto-save indicator */}
+      <div className={cn(
+        'hidden items-center gap-1.5 text-xs transition-opacity sm:flex',
+        saved ? 'text-muted-foreground opacity-70' : 'text-warning opacity-100'
+      )}>
+        <Save className="h-3.5 w-3.5" />
+        <span>{saved ? 'Salvo' : 'Salvando...'}</span>
+      </div>
 
+      {/* Export */}
       {onExportPDF && (
         <Button
           variant="default"
           size="sm"
           onClick={handleExport}
           disabled={exporting}
-          className="gap-2 shadow-sm"
+          className="gap-2 h-8 shadow-sm"
         >
-          {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          {exporting
+            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            : <Download className="h-3.5 w-3.5" />}
           {exporting ? 'Gerando...' : 'Exportar PDF'}
         </Button>
       )}
