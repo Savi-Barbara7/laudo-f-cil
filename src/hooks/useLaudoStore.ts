@@ -1,10 +1,23 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, type ReactNode } from 'react';
+import { createElement } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { Laudo } from '@/types/laudo';
 import { TEXTOS_PADRAO, DADOS_CAPA_PADRAO } from '@/data/defaultTexts';
 
-export function useLaudoStore() {
+interface LaudoStoreContextType {
+  laudos: Laudo[];
+  loading: boolean;
+  criarLaudo: (titulo?: string, obraNome?: string) => Promise<string>;
+  duplicarLaudo: (id: string) => Promise<string>;
+  atualizarLaudo: (id: string, updates: Partial<Laudo>) => Promise<void>;
+  removerLaudo: (id: string) => Promise<void>;
+  getLaudo: (id: string) => Laudo | undefined;
+}
+
+const LaudoStoreContext = createContext<LaudoStoreContextType | undefined>(undefined);
+
+function LaudoStoreProviderInner({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [laudos, setLaudos] = useState<Laudo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +41,7 @@ export function useLaudoStore() {
 
   const criarLaudo = useCallback(async (titulo: string = 'Novo Laudo', obraNome?: string): Promise<string> => {
     if (!user) return '';
-    
+
     let obraId: string | null = null;
     if (obraNome) {
       const { data: existing } = await (supabase
@@ -148,7 +161,21 @@ export function useLaudoStore() {
     return laudos.find(l => l.id === id);
   }, [laudos]);
 
-  return { laudos, loading, criarLaudo, duplicarLaudo, atualizarLaudo, removerLaudo, getLaudo };
+  return createElement(
+    LaudoStoreContext.Provider,
+    { value: { laudos, loading, criarLaudo, duplicarLaudo, atualizarLaudo, removerLaudo, getLaudo } },
+    children
+  );
+}
+
+export function LaudoStoreProvider({ children }: { children: ReactNode }) {
+  return createElement(LaudoStoreProviderInner, null, children);
+}
+
+export function useLaudoStore(): LaudoStoreContextType {
+  const ctx = useContext(LaudoStoreContext);
+  if (!ctx) throw new Error('useLaudoStore must be used within LaudoStoreProvider');
+  return ctx;
 }
 
 function rowToLaudo(row: any): Laudo {
