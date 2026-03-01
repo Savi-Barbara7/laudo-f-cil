@@ -50,7 +50,8 @@ async function pdfToImages(file: File): Promise<string[]> {
   return urls;
 }
 
-export function FichasSection({ fichas, onUpdate, richText, onRichTextUpdate }: FichasSectionProps) {
+export function FichasSection({ fichas: fichasRaw, onUpdate, richText, onRichTextUpdate }: FichasSectionProps) {
+  const fichas: Documentacao[] = fichasRaw ?? [];
   const [uploading, setUploading] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [annotating, setAnnotating] = useState<{ docId: string; imgIndex: number; url: string } | null>(null);
