@@ -17,6 +17,7 @@ export type Database = {
       laudos: {
         Row: {
           art_images: Json
+          art_pdf_url: string | null
           art_rich_text: string | null
           conclusao: string | null
           created_at: string
@@ -38,6 +39,7 @@ export type Database = {
         }
         Insert: {
           art_images?: Json
+          art_pdf_url?: string | null
           art_rich_text?: string | null
           conclusao?: string | null
           created_at?: string
@@ -59,6 +61,7 @@ export type Database = {
         }
         Update: {
           art_images?: Json
+          art_pdf_url?: string | null
           art_rich_text?: string | null
           conclusao?: string | null
           created_at?: string

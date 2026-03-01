@@ -14,7 +14,7 @@ import { FichasSection } from '@/components/editor/FichasSection';
 import { ConclusaoSection } from '@/components/editor/ConclusaoSection';
 import { gerarPDF } from '@/lib/pdfGenerator';
 import type { SecaoId, Laudo } from '@/types/laudo';
-import { ZoomIn, ZoomOut } from 'lucide-react';
+import { ZoomIn, ZoomOut, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 
@@ -25,19 +25,27 @@ const LaudoEditor = () => {
   const [secaoAtiva, setSecaoAtiva] = useState<SecaoId>('capa');
   const [zoom, setZoom] = useState(0.6);
 
+  const { loading } = useLaudoStore();
   const laudo = getLaudo(id || '');
 
   useEffect(() => {
-    if (!laudo && id) {
+    // Only redirect if loading is done AND laudo is not found
+    if (!loading && !laudo && id) {
       navigate('/');
     }
-  }, [laudo, id, navigate]);
+  }, [laudo, id, navigate, loading]);
 
   const handleUpdate = useCallback(
     (updates: Partial<Laudo>) => {
       if (id) atualizarLaudo(id, updates);
     },
     [id, atualizarLaudo]
+  );
+
+  if (loading) return (
+    <div className="flex h-screen items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
   );
 
   if (!laudo) return null;
