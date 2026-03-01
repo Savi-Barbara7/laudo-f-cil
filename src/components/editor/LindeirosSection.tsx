@@ -12,9 +12,10 @@ import { PhotoLightbox } from './PhotoLightbox';
 interface LindeirosProps {
   lindeiros: Lindeiro[];
   onUpdate: (lindeiros: Lindeiro[]) => void;
+  volumeNumero?: number; // se passado, mostra como volume específico
 }
 
-export function LindeirosSection({ lindeiros, onUpdate }: LindeirosProps) {
+export function LindeirosSection({ lindeiros, onUpdate, volumeNumero }: LindeirosProps) {
   const [uploadingAmb, setUploadingAmb] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<{ lindIndex: number; ambIndex: number; fotoIndex: number } | null>(null);
   const [annotating, setAnnotating] = useState<{ lindIndex: number; ambIndex: number; fotoIndex: number; url: string } | null>(null);

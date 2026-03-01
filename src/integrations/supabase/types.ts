@@ -19,6 +19,7 @@ export type Database = {
           art_images: Json
           art_pdf_url: string | null
           art_rich_text: string | null
+          canteiro_volume: Json | null
           conclusao: string | null
           created_at: string
           croqui_images: Json
@@ -36,11 +37,13 @@ export type Database = {
           titulo: string
           updated_at: string
           user_id: string
+          volumes: Json
         }
         Insert: {
           art_images?: Json
           art_pdf_url?: string | null
           art_rich_text?: string | null
+          canteiro_volume?: Json | null
           conclusao?: string | null
           created_at?: string
           croqui_images?: Json
@@ -58,11 +61,13 @@ export type Database = {
           titulo?: string
           updated_at?: string
           user_id: string
+          volumes?: Json
         }
         Update: {
           art_images?: Json
           art_pdf_url?: string | null
           art_rich_text?: string | null
+          canteiro_volume?: Json | null
           conclusao?: string | null
           created_at?: string
           croqui_images?: Json
@@ -80,6 +85,7 @@ export type Database = {
           titulo?: string
           updated_at?: string
           user_id?: string
+          volumes?: Json
         }
         Relationships: [
           {
